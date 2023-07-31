@@ -389,7 +389,7 @@ class TAGEBase : public SimObject
      * @param cond_branch True if the branch is conditional.
      * @param bi Pointer to the BranchInfo
      */
-    bool tagePredict(
+    virtual bool tagePredict(
         ThreadID tid, Addr branch_pc, bool cond_branch, BranchInfo* bi);
 
     /**
@@ -452,6 +452,12 @@ class TAGEBase : public SimObject
      * Algorithm for resetting a single U counter
      */
     virtual void resetUctr(uint8_t & u);
+
+    /**
+     * Try to allocate an entry at index idx.
+     * Returns true if the allocation was successful
+    */
+    virtual bool allocateEntry(int idx, BranchInfo* bi, bool taken = false);
 
     /**
      * Extra steps for calculating altTaken
