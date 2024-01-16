@@ -76,7 +76,8 @@ TAGE_SC_L_LoopPredictor::optionalAgeInc() const
 }
 
 TAGE_SC_L::TAGE_SC_L(const TAGE_SC_LParams &p)
-  : LTAGE(p), statisticalCorrector(p.statistical_corrector)
+  : LTAGE(p), statisticalCorrector(p.statistical_corrector),
+    useSC(p.sc_enabled)
 {
 }
 
@@ -237,9 +238,20 @@ TAGE_SC_L_TAGE::bindex(Addr pc) const
             ((1ULL << (logTagTableSizes[0])) - 1));
 }
 
+int
+TAGE_SC_L_TAGE::branchTypeExtra(const StaticInstPtr & inst)
+{
+    int brtype = inst->isDirectCtrl() ? 0 : 2;
+    if (! inst->isUncondCtrl()) {
+        ++brtype;
+    }
+    return brtype;
+}
+
 void
-TAGE_SC_L_TAGE::updatePathAndGlobalHistory(
-    ThreadID tid, int brtype, bool taken, Addr branch_pc, Addr target)
+TAGE_SC_L_TAGE::updatePathAndGlobalHistory(ThreadID tid, int brtype,
+                                    bool taken, Addr branch_pc, Addr target,
+                                    TAGEBase::BranchInfo* bi)
 {
     ThreadHistory& tHist = threadHistory[tid];
     // TAGE update
@@ -263,40 +275,10 @@ TAGE_SC_L_TAGE::updatePathAndGlobalHistory(
             tHist.pathHist = (tHist.pathHist & ((1ULL << pathHistBits) - 1));
         }
     }
-
+    // Record the update to be able to squash it later
+    bi->ghist = tmp;
+    bi->nGhist = maxt;
     updateGHist(tid, tmp, maxt);
-}
-
-void
-TAGE_SC_L_TAGE::updateHistories(ThreadID tid, Addr branch_pc,
-                            bool speculative, bool taken,
-                            Addr target, const StaticInstPtr &inst,
-                            TAGEBase::BranchInfo* bi)
-{
-    if (speculative != speculativeHistUpdate) {
-        return;
-    }
-    // speculation is not implemented
-    assert(! speculative);
-
-    ThreadHistory& tHist = threadHistory[tid];
-
-    int brtype = inst->isDirectCtrl() ? 0 : 2;
-    if (! inst->isUncondCtrl()) {
-        ++brtype;
-    }
-    updatePathAndGlobalHistory(tid, brtype, taken, branch_pc, target);
-
-    DPRINTF(TageSCL, "Updating global histories with branch:%lx; taken?:%d, "
-            "path Hist: %x; pointer:%d\n", branch_pc, taken, tHist.pathHist,
-            tHist.ptGhist);
-}
-
-void
-TAGE_SC_L_TAGE::squash(ThreadID tid, bool taken, Addr target,
-                        const StaticInstPtr &inst, TAGEBase::BranchInfo *bi)
-{
-    fatal("Speculation is not implemented");
 }
 
 void
@@ -396,19 +378,21 @@ TAGE_SC_L::predict(ThreadID tid, Addr pc, bool cond_branch, void* &b)
     bi->scBranchInfo->altConf = tage_scl_bi->altConf;
     bi->scBranchInfo->medConf = tage_scl_bi->medConf;
 
-    bool use_tage_ctr = bi->tageBranchInfo->hitBank > 0;
-    int8_t tage_ctr = use_tage_ctr ?
-        tage->getCtr(tage_scl_bi->hitBank, tage_scl_bi->hitBankIndex) : 0;
-    bool bias = (bi->tageBranchInfo->longestMatchPred !=
-                 bi->tageBranchInfo->altTaken);
+    if (useSC) {
+        bool use_tage_ctr = bi->tageBranchInfo->hitBank > 0;
+        int8_t tage_ctr = use_tage_ctr ?
+            tage->getCtr(tage_scl_bi->hitBank, tage_scl_bi->hitBankIndex) : 0;
+        bool bias = (bi->tageBranchInfo->longestMatchPred !=
+                    bi->tageBranchInfo->altTaken);
 
-    pred_taken = statisticalCorrector->scPredict(tid, pc, cond_branch,
-            bi->scBranchInfo, pred_taken, bias, use_tage_ctr, tage_ctr,
-            tage->getTageCtrBits(), bi->tageBranchInfo->hitBank,
-            bi->tageBranchInfo->altBank, tage->getPathHist(tid));
+        pred_taken = statisticalCorrector->scPredict(tid, pc, cond_branch,
+                bi->scBranchInfo, pred_taken, bias, use_tage_ctr, tage_ctr,
+                tage->getTageCtrBits(), bi->tageBranchInfo->hitBank,
+                bi->tageBranchInfo->altBank, tage->getPathHist(tid));
 
-    if (bi->scBranchInfo->usedScPred) {
-        bi->tageBranchInfo->provider = SC;
+        if (bi->scBranchInfo->usedScPred) {
+            bi->tageBranchInfo->provider = SC;
+        }
     }
 
     // record final prediction
@@ -447,13 +431,15 @@ TAGE_SC_L::update(ThreadID tid, Addr pc, bool taken, void *&bp_history,
 
         loopPredictor->updateStats(taken, bi->lpBranchInfo);
 
-        statisticalCorrector->updateStats(taken, bi->scBranchInfo);
+        if (useSC) {
+            statisticalCorrector->updateStats(taken, bi->scBranchInfo);
 
-        bool bias = (bi->tageBranchInfo->longestMatchPred !=
-                     bi->tageBranchInfo->altTaken);
-        statisticalCorrector->condBranchUpdate(tid, pc, taken,
-            bi->scBranchInfo, target, bias, bi->tageBranchInfo->hitBank,
-            bi->tageBranchInfo->altBank, tage->getPathHist(tid));
+            bool bias = (bi->tageBranchInfo->longestMatchPred !=
+                        bi->tageBranchInfo->altTaken);
+            statisticalCorrector->condBranchUpdate(tid, pc, taken,
+                bi->scBranchInfo, target, bias, bi->tageBranchInfo->hitBank,
+                bi->tageBranchInfo->altBank, tage->getPathHist(tid));
+        }
 
         loopPredictor->condBranchUpdate(tid, pc, taken,
                 bi->tageBranchInfo->tagePred, bi->lpBranchInfo, instShiftAmt);
@@ -462,17 +448,17 @@ TAGE_SC_L::update(ThreadID tid, Addr pc, bool taken, void *&bp_history,
                                nrand, target, bi->lpBranchInfo->predTaken);
     }
 
-    if (!tage->isSpeculativeUpdateEnabled()) {
+    if (useSC) {
         statisticalCorrector->scHistoryUpdate(pc, inst, taken,
-                                              bi->scBranchInfo, target);
-
-        tage->updateHistories(tid, pc, false, taken, target,
-                              inst, bi->tageBranchInfo);
+                                            bi->scBranchInfo, target);
     }
 
+    tage->updateHistories(tid, pc, false, taken, target,
+                            inst, bi->tageBranchInfo);
     delete bi;
     bp_history = nullptr;
 }
+
 
 } // namespace branch_prediction
 } // namespace gem5

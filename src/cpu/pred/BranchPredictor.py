@@ -650,6 +650,9 @@ class TAGE_SC_L(LTAGE):
     cxx_class = "gem5::branch_prediction::TAGE_SC_L"
     cxx_header = "cpu/pred/tage_sc_l.hh"
     abstract = True
+    sc_enabled = Param.Bool(
+        True, "Use the statistical corrector in the branch predictor"
+    )
 
     statistical_corrector = Param.StatisticalCorrector("Statistical Corrector")
 
