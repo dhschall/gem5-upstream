@@ -68,6 +68,7 @@ BAC::BAC(CPU *_cpu, const BaseO3CPUParams &params)
       ftq(nullptr),
       wroteToTimeBuffer(false),
       decoupledFrontEnd(params.decoupledFrontEnd),
+      pfc(params.pfc),
       fetchToBacDelay(params.fetchToBacDelay),
       decodeToFetchDelay(params.decodeToFetchDelay),
       commitToFetchDelay(params.commitToFetchDelay),
@@ -489,6 +490,12 @@ BAC::squashBpuHistories(ThreadID tid)
         });
 }
 
+void 
+BAC::recordPFCBranch(const InstSeqNum &seqNum)
+{
+    bpu->recordPFCBranch(seqNum);
+}
+
 void
 BAC::squash(const PCStateBase &new_pc, ThreadID tid)
 {
@@ -644,6 +651,15 @@ BAC::generateFetchTargets(ThreadID tid, bool &status_change)
         if (branch_found) {
             break;
         }
+
+	// If Post Fetch Correction is enabled.
+	// Every instruction's direction hint needs to be recorded.
+        if(pfc){
+	    // It only works for arm now,
+	    // since arm's instruction length is fixed.
+	    bool direction_hint = bpu->predictHint(search_addr, tid);
+	    curFT->setDireHint(search_addr, direction_hint);
+	}	
 
         // If its not a branch check if the maximum search width is reached.
         // If yes stop searching.

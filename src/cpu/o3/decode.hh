@@ -97,6 +97,7 @@ class Decode
     /** Per-thread status. */
     ThreadStatus decodeStatus[MaxThreads];
 
+
   public:
     /** Decode constructor. */
     Decode(CPU *_cpu, const BaseO3CPUParams &params);
@@ -281,6 +282,8 @@ class Decode
     /** number of Active Threads*/
     ThreadID numThreads;
 
+    const bool pfc;
+
     /** List of active thread ids */
     std::list<ThreadID> *activeThreads;
 
@@ -317,6 +320,8 @@ class Decode
         statistics::Scalar branchResolved;
         /** Stat for number of times a branch mispredict is detected. */
         statistics::Scalar branchMispred;
+        /** Stat for number of times a BTB-miss cond-branch with taken hint is detected. */
+        statistics::Scalar postFetchCorrection;
         /** Stat for number of times decode detected a non-control instruction
          * incorrectly predicted as a branch.
          */

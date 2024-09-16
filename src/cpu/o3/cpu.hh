@@ -377,6 +377,7 @@ class CPU : public BaseCPU
     /** Debug function to print all instructions on the list. */
     void dumpInsts();
 
+    void recordPFCBranch(const InstSeqNum &seqNum);
   public:
 #ifndef NDEBUG
     /** Count of total number of dynamic instructions in flight. */

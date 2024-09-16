@@ -43,6 +43,7 @@
 #define __CPU_PRED_BPRED_UNIT_HH__
 
 #include <deque>
+#include <unordered_set>
 
 #include "base/statistics.hh"
 #include "base/types.hh"
@@ -106,6 +107,21 @@ class BPredUnit : public SimObject
     bool predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
                  PCStateBase &pc, ThreadID tid);
 
+    /** Record SeqNum for the pfc branch */
+    void recordPFCBranch(const InstSeqNum &seqNum);
+
+    bool checkPFCRecord(const InstSeqNum &seqNum);
+
+    /**
+     * This function is dedicated to PFC.
+     * Predict the direction hint for every instruction within a fetch target, 
+     * including non-branch instruction.
+     * Never altering history and predictor counter.
+     * @param pc The pc of an instruction within fetch target.
+     * @param tid The thread id.
+     */
+    bool predictHint(Addr pc, ThreadID tid);
+
     /**
      * Tells the branch predictor to commit any updates until the given
      * sequence number.
@@ -154,6 +170,16 @@ class BPredUnit : public SimObject
      * @return Whether the branch is taken or not taken.
      */
     virtual bool lookup(ThreadID tid, Addr pc, void * &bpHistory) = 0;
+
+    /**
+     * Special function for the decoupled front-end with PFC enabled. 
+     * No need to update history for direction hint lookup in generateFetchTarget.
+     * Note that not all branch predictors implement this functionality.
+     * @param tid The tid.
+     * @param PC The instruction's PC.
+     * @return Whether the direction hint is taken or not taken.
+     */
+    virtual bool lookupHint(ThreadID tid, Addr pc);
 
     /**
      * Once done with the prediction this function updates the
@@ -292,6 +318,20 @@ class BPredUnit : public SimObject
               indirectHistory(nullptr), rasHistory(nullptr)
         { }
 
+	/**
+	 * Only used for generating a dummy predictorHistory for PFC.
+	 */
+        PredictorHistory(ThreadID _tid, Addr _pc)
+            : seqNum(0), tid(_tid), pc(_pc),
+              inst(nullptr), type(BranchType::NoBranch),
+              call(false), uncond(false),
+              predTaken(false), actuallyTaken(false), condPred(false),
+              btbHit(false), targetProvider(TargetProvider::NoTarget),
+              resteered(false), mispredict(false), target(nullptr),
+              bpHistory(nullptr),
+              indirectHistory(nullptr), rasHistory(nullptr)
+        { }
+
         ~PredictorHistory()
         {
             assert(bpHistory == nullptr);
@@ -412,6 +452,9 @@ class BPredUnit : public SimObject
      */
     std::vector<History> predHist;
 
+    /** Record SeqNums for branches that caused pfc */
+    std::unordered_set<InstSeqNum> pfc_record;
+
     /** The BTB. */
     BranchTargetBuffer * btb;
 
@@ -460,6 +503,8 @@ class BPredUnit : public SimObject
         statistics::Scalar BTBLookups;
         /** Stat for number of BTB updates. */
         statistics::Scalar BTBUpdates;
+        /** Stat for number of correct PFCs */
+        statistics::Scalar correctPFC;
         /** Stat for number of BTB hits. */
         statistics::Scalar BTBHits;
         /** Stat for number for the ratio between BTB hits and BTB lookups. */

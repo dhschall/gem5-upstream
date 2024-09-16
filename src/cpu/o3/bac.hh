@@ -177,6 +177,8 @@ class BAC
 
     void deactivateThread(ThreadID tid) {};
 
+    void recordPFCBranch(const InstSeqNum &seqNum);
+
     /** Processing all input signals and create the next fetch target. */
     void tick();
 
@@ -386,6 +388,8 @@ class BAC
 
     /** Enables the decoupled front-end */
     const bool decoupledFrontEnd;
+    /** Enables the Post Fetch Correction */
+    const bool pfc;
 
     /** Fetch to BAC delay. */
     const Cycles fetchToBacDelay;

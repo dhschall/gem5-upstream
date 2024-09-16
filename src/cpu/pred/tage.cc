@@ -116,6 +116,14 @@ TAGE::predict(ThreadID tid, Addr branch_pc, bool cond_branch, void* &b)
 }
 
 bool
+TAGE::lookupHint(ThreadID tid, Addr pc)
+{
+    void *dummy_bi = nullptr;
+    bool hint = lookup(tid, pc, dummy_bi);
+    delete static_cast<TageBranchInfo*>(dummy_bi);
+    return hint; 
+}
+bool
 TAGE::lookup(ThreadID tid, Addr branch_pc, void* &bpHistory)
 {
     bool retval = predict(tid, branch_pc, true, bpHistory);

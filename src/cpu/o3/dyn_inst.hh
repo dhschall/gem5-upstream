@@ -183,6 +183,7 @@ class DynInst : public ExecContext, public RefCounted
         Predicate,
         MemAccPredicate,
         PredTaken,
+	HintTaken,
         IsStrictlyOrdered,
         ReqMade,
         MemOpDone,
@@ -336,6 +337,9 @@ class DynInst : public ExecContext, public RefCounted
 
     /** The effective physical address. */
     Addr physEffAddr = 0;
+
+    /** this instruciton caused post fetch correction. */
+    bool pfc = false;
 
     /** The memory request flags (from translation). */
     unsigned memReqFlags = 0;
@@ -518,11 +522,25 @@ class DynInst : public ExecContext, public RefCounted
     /** Returns whether the instruction was predicted taken or not. */
     bool readPredTaken() { return instFlags[PredTaken]; }
 
+    /** Returns whether the instruction's direction hint is taken or not.
+     *  It only works for pfc.
+     */
+    bool readHintTaken() { return instFlags[HintTaken]; }
+
+
+
     void
     setPredTaken(bool predicted_taken)
     {
         instFlags[PredTaken] = predicted_taken;
     }
+
+    void
+    setHintTaken(bool hint_taken)
+    {
+        instFlags[HintTaken] = hint_taken;
+    }
+
 
     /** Returns whether the instruction mispredicted. */
     bool

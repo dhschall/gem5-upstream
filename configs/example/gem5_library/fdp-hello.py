@@ -53,7 +53,8 @@ scons build/ALL/gem5.opt
 ./build/ALL/gem5.opt \
     configs/example/gem5_library/fdp-hello.py \
     --isa <isa> \
-    [--disable-fdp]
+    [--disable-fdp] \
+    [--pfc]
 ```
 """
 
@@ -127,6 +128,12 @@ parser.add_argument(
     "--disable-fdp",
     action="store_true",
     help="Disable FDP to get evaluate baseline",
+)
+
+parser.add_argument(
+    "--pfc",
+    action="store_true",
+    help="Enhance FDP with Post Fetch Correction. Only can it work when fdp is enabled.",
 )
 
 args = parser.parse_args()
@@ -236,11 +243,13 @@ if args.disable_fdp:
     cpu.decoupledFrontEnd = False
 else:
     cpu.decoupledFrontEnd = True
+    if args.pfc:
+        cpu.pfc = True
 
 
 print(
-    "Running {} on {}, FDP {}".format(
-        args.workload, args.isa, "disabled" if args.disable_fdp else "enabled"
+    "Running {} on {}, FDP {}, PFC {}".format(
+        args.workload, args.isa, "disabled" if args.disable_fdp else "enabled", "enabled" if args.pfc else "disabled"
     )
 )
 

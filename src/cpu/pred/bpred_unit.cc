@@ -48,6 +48,7 @@
 #include "base/compiler.hh"
 #include "base/trace.hh"
 #include "debug/Branch.hh"
+#include "debug/PFC.hh"
 
 namespace gem5
 {
@@ -94,6 +95,12 @@ BPredUnit::drainSanityCheck() const
         assert(ph.empty());
 }
 
+bool
+BPredUnit::lookupHint(ThreadID tid, Addr pc)
+{
+    panic("Not implemented for this BP!\n");
+}
+
 void
 BPredUnit::branchPlaceholder(ThreadID tid, Addr pc,
                                 bool uncond, void * &bpHistory)
@@ -120,7 +127,32 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
     return taken;
 }
 
+void
+BPredUnit::recordPFCBranch(const InstSeqNum &seqNum)
+{
+    pfc_record.insert(seqNum); 
+}
 
+bool
+BPredUnit::checkPFCRecord(const InstSeqNum &seqNum)
+{
+    if(pfc_record.find(seqNum) != pfc_record.end()){
+	std::cout << seqNum << std::endl;
+        pfc_record.erase(seqNum);
+        return true;
+    }
+    return false;
+}
+
+bool
+BPredUnit::predictHint(Addr pc, ThreadID tid)
+{
+
+    bool direction_hint = lookupHint(tid, pc);
+
+
+    return direction_hint;
+}
 
 
 bool
@@ -398,6 +430,10 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
                          hist->rasHistory);
     }
 
+    //If this branch caused a post fetch correction, check its correctness here.
+    //Only when pfc is enabled does it work. Otherwise pfc_record is always empty.
+    bool is_pfc = checkPFCRecord(hist->seqNum);
+
     // Update the BTB with commited branches.
     // Install all taken
     if (hist->actuallyTaken) {
@@ -411,6 +447,9 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
                         *hist->target,
                          hist->type,
                          hist->inst);
+
+	if(is_pfc)
+	    stats.correctPFC++;
     }
 }
 
@@ -497,6 +536,9 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
     DPRINTF(Branch, "[tid:%i] Squash from %s start from sequence number %i, "
             "setting target to %s\n", tid, from_commit ? "commit" : "decode",
             squashed_sn, corr_target);
+    if(from_commit){
+	bool aa = true;
+    }
 
     // dump();
 
@@ -681,6 +723,8 @@ BPredUnit::BPredUnitStats::BPredUnitStats(
                "Number of BTB lookups"),
       ADD_STAT(BTBUpdates, statistics::units::Count::get(),
                "Number of BTB lookups"),
+      ADD_STAT(correctPFC, statistics::units::Count::get(),
+               "Number of correct PFCs"),
       ADD_STAT(BTBHits, statistics::units::Count::get(),
                "Number of BTB hits"),
       ADD_STAT(BTBHitRatio, statistics::units::Ratio::get(), "BTB Hit Ratio",

@@ -213,3 +213,4 @@ class BaseO3CPU(BaseCPU):
         "of the instruction minimum search width per cycle",
     )
     decoupledFrontEnd = Param.Bool(False, "Enables the decoupled front-end")
+    pfc = Param.Bool(False, "Enables the Post Fetch Correction")

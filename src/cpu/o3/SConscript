@@ -72,6 +72,7 @@ if not env['CONF']['USE_NULL_ISA']:
     Source('thread_state.cc')
 
     DebugFlag('BAC')
+    DebugFlag('PFC')
     DebugFlag('CommitRate')
     DebugFlag('FTQ')
     DebugFlag('IEW')

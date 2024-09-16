@@ -86,6 +86,7 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       cpu(_cpu),
       bac(nullptr), ftq(nullptr),
       decoupledFrontEnd(params.decoupledFrontEnd),
+      pfc(params.pfc),
       decodeToFetchDelay(params.decodeToFetchDelay),
       renameToFetchDelay(params.renameToFetchDelay),
       iewToFetchDelay(params.iewToFetchDelay),
@@ -1094,7 +1095,7 @@ Fetch::fetch(bool &status_change)
 
     FetchTargetPtr curFT = ftq->readHead(tid);
 
-    if (decoupledFrontEnd) { // #ifdef FDIP
+    if (decoupledFrontEnd) { 
         assert(ftqReady(tid,status_change));
 
         if (!curFT->inRange(this_pc.instAddr())) {
@@ -1273,6 +1274,12 @@ Fetch::fetch(bool &status_change)
 
             DynInstPtr instruction = buildInst(
                     tid, staticInst, curMacroop, this_pc, *next_pc, true);
+
+	    //Set direction hint for instuction when using pfc.
+	    if(pfc){
+	      bool direction_hint = curFT->getDireHint(this_pc.instAddr()); 
+	      instruction->setHintTaken(direction_hint);
+	    }
 
             ppFetch->notify(instruction);
             numInst++;
