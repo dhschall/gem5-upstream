@@ -689,8 +689,10 @@ Decoder::decode(ExtMachInst mach_inst, Addr addr)
 
     si->size(basePC + offset - origPC);
 
-    DPRINTF(Decode, "Decode: Decoded %s instruction: %#x\n",
-            si->getName(), mach_inst);
+    DPRINTF(Decode, "Decode PC:%#x Decoded %s instruction: %#x\n",
+            addr, si->getName(), mach_inst);
+    DPRINTF(Decode, "Decode: bPC %s, offset %d, origPC %#x\n",
+            basePC, offset, origPC);
     return si;
 }
 
@@ -740,7 +742,10 @@ Decoder::decode(PCStateBase &next_pc)
 StaticInstPtr
 Decoder::fetchRomMicroop(MicroPC micropc, StaticInstPtr curMacroop)
 {
-    return microcodeRom.fetchMicroop(micropc, curMacroop);
+  auto si = microcodeRom.fetchMicroop(micropc, curMacroop);
+  si->size(4);
+  return si;
+    // return microcodeRom.fetchMicroop(micropc, curMacroop);
 }
 
 } // namespace X86ISA
