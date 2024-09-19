@@ -15,8 +15,8 @@ for line in lines:
 
 # 再次遍历所有行，找到包含'Commit branch:'的行，并提取'sn:'后面的数字
 for line in lines:
-    #if 'Commit branch' in line:
-    if 'Committing branches un' in line:
+    if 'Commit branch' in line:
+ #   if 'Committing branches un' in line:
         parts = line.strip().split('sn:')
         if len(parts) > 1:
             sn_part = parts[1].strip().split()[0]

@@ -137,7 +137,6 @@ bool
 BPredUnit::checkPFCRecord(const InstSeqNum &seqNum)
 {
     if(pfc_record.find(seqNum) != pfc_record.end()){
-	std::cout << seqNum << std::endl;
         pfc_record.erase(seqNum);
         return true;
     }
@@ -340,6 +339,8 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
     // If prediction and actual direction are the same
     // at commit the prediction was correct.
     hist->actuallyTaken = hist->predTaken;
+    if(seqNum == 1517)
+        bool aa = true;
     set(pc, *hist->target);
 
     DPRINTF(Branch, "%s(tid:%i, sn:%i, PC:%#x, %s) -> taken:%i, target:%s "
@@ -404,7 +405,8 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
     if (hist->mispredict) {
         stats.mispredicted[tid][hist->type]++;
     }
-
+    if(hist->seqNum == 1517)
+        bool aa = true;
 
     DPRINTF(Branch, "Commit branch: sn:%llu, PC:%#x %s, "
                     "pred:%i, taken:%i, target:%#x\n",
@@ -536,9 +538,6 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
     DPRINTF(Branch, "[tid:%i] Squash from %s start from sequence number %i, "
             "setting target to %s\n", tid, from_commit ? "commit" : "decode",
             squashed_sn, corr_target);
-    if(from_commit){
-	bool aa = true;
-    }
 
     // dump();
 
@@ -589,6 +588,8 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
 
         // Remember the correct direction and target for the update at commit.
         hist->mispredict = true;
+        if(squashed_sn == 1517)
+            bool aa = true; 
         hist->actuallyTaken = actually_taken;
         set(hist->target,  corr_target);
 

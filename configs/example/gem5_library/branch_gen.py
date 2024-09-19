@@ -7,6 +7,8 @@ tmpl = """
 #include <stdio.h>
 #include <cstdlib>
 
+#include "gem5/m5ops.h"
+
 #define N {N}
 
 int main(int argc, char* argv[])
@@ -26,8 +28,11 @@ int main(int argc, char* argv[])
     
     for (int iter=0; iter < num_iter; iter++) {{
         int sum = 0;
+        m5_reset_stats(0, 0);
 
 {loop_tmpl}
+
+        m5_dump_stats(0, 0);
 
         printf("Iter:%d = Sum: %d\\n", iter, sum);
     }}
@@ -41,8 +46,8 @@ int main(int argc, char* argv[])
 def gen_loop_tmpl(N):
     loop_tmpl = ""
     for i in range(N):
-        loop_tmpl += f"    if (a[{i}] > {(128-i) % 124})\n"
-        loop_tmpl += f"        sum += a[{i}];\n"
+        loop_tmpl += f"    if (a[{i % 4}] > {i % 4})\n"
+        loop_tmpl += f"        sum += {i % 4 + 1};\n"
     return loop_tmpl
 
 
