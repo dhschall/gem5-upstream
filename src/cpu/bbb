@@ -1,0 +1,62 @@
+./o3/bac.hh:252:    bool predict(ThreadID tid, const StaticInstPtr &inst,
+./o3/bac.cc:589:BAC::predict(ThreadID tid, const StaticInstPtr &inst,
+./o3/bac.cc:595:    bool taken  = bpu->predict(inst, ft->ftNum(), pc, tid, bpu_history);
+./o3/bac.cc:699:        predict_taken = predict(tid, staticInst, curFT, *next_pc);
+./o3/bac.cc:873:        bpu->predict(inst, ft->ftNum(), pc, tid, hist);
+./o3/bac.cc:956:            predict_taken = bpu->predict(inst->staticInst, inst->seqNum,
+./simple/base.cc:398:            branchPred->predict(curStaticInst, cur_sn, *t_info.predPC,
+./minor/fetch2.cc:206:        if (branchPredictor.predict(inst->staticInst,
+./pred/loop_predictor.hh:238:    bool loopPredict(
+./pred/multiperspective_perceptron_tage_8KB.cc:81:    lsum += gPredict((pc << 1) + bi->predBeforeSC, sh->globalHist << 11,
+./pred/multiperspective_perceptron_tage_8KB.cc:85:    lsum += 2 * gPredict(branch_pc, sh->getLocalHistory(1, branch_pc),
+./pred/multiperspective_perceptron_tage_8KB.cc:90:    lsum += gPredict(branch_pc, sh->getHistoryStackEntry(),
+./pred/tage_sc_l_8KB.cc:85:    lsum += gPredict(
+./pred/tage_sc_l_8KB.cc:88:    lsum += gPredict(
+./pred/tage_sc_l_8KB.cc:92:    lsum += gPredict(
+./pred/tage_sc_l_8KB.cc:96:    lsum += gPredict(
+./pred/multiperspective_perceptron_tage_64KB.cc:94:    lsum += gPredict((pc << 1) + bi->predBeforeSC, sh->globalHist << 11,
+./pred/multiperspective_perceptron_tage_64KB.cc:98:    lsum += 2.02 * gPredict(branch_pc, sh->getLocalHistory(1, branch_pc),
+./pred/multiperspective_perceptron_tage_64KB.cc:104:    lsum += gPredict(branch_pc, sh->getLocalHistory(3, branch_pc) << 11,
+./pred/multiperspective_perceptron_tage_64KB.cc:108:    lsum += gPredict(branch_pc, sh->getLocalHistory(2, branch_pc),
+./pred/multiperspective_perceptron_tage_64KB.cc:111:    lsum += gPredict(branch_pc, sh->getHistoryStackEntry(),
+./pred/tage.cc:111:TAGE::predict(ThreadID tid, Addr branch_pc, bool cond_branch, void* &b)
+./pred/tage.cc:115:    return tage->tagePredict(tid, branch_pc, cond_branch, bi->tageBranchInfo);
+./pred/tage.cc:129:    bool retval = predict(tid, branch_pc, true, bpHistory);
+./pred/tage.cc:145:        predict(tid, pc, false, bpHistory);
+./pred/multiperspective_perceptron_tage.hh:186:    bool scPredict(ThreadID tid, Addr branch_pc, bool cond_branch,
+./pred/tage_sc_l.cc:373:TAGE_SC_L::predict(ThreadID tid, Addr branch_pc, bool cond_branch, void* &b)
+./pred/tage_sc_l.cc:381:    bool pred_taken = tage->tagePredict(tid, branch_pc, cond_branch,
+./pred/tage_sc_l.cc:383:    pred_taken = loopPredictor->loopPredict(tid, branch_pc, cond_branch,
+./pred/tage_sc_l.cc:406:    pred_taken = statisticalCorrector->scPredict(tid, branch_pc, cond_branch,
+./pred/tage_sc_l_64KB.cc:105:    lsum += gPredict(
+./pred/tage_sc_l_64KB.cc:109:    lsum += gPredict(
+./pred/tage_sc_l_64KB.cc:112:    lsum += gPredict(
+./pred/tage_sc_l_64KB.cc:116:    lsum += gPredict(
+./pred/tage_sc_l_64KB.cc:120:    lsum += gPredict(
+./pred/tage_sc_l_64KB.cc:124:    lsum += gPredict(
+./pred/tage_sc_l_64KB.cc:128:    lsum += gPredict(
+./pred/ltage.cc:87:LTAGE::predict(ThreadID tid, Addr branch_pc, bool cond_branch, void* &b)
+./pred/ltage.cc:93:    bool pred_taken = tage->tagePredict(tid, branch_pc, cond_branch,
+./pred/ltage.cc:96:    pred_taken = loopPredictor->loopPredict(tid, branch_pc, cond_branch,
+./pred/tage_base.hh:388:    bool tagePredict(
+./pred/loop_predictor.cc:289:LoopPredictor::loopPredict(ThreadID tid, Addr branch_pc, bool cond_branch,
+./pred/tage.hh:95:    virtual bool predict(ThreadID tid, Addr branch_pc, bool cond_branch,
+./pred/ltage.hh:122:     * BpredUnit::predict().
+./pred/ltage.hh:130:    bool predict(
+./pred/bpred_unit.cc:112:BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
+./pred/bpred_unit.cc:117:    bool taken  = predict(inst, seqNum, pc, tid, bpu_history);
+./pred/bpred_unit.cc:158:BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
+./pred/bpred_unit.hh:107:    bool predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
+./pred/bpred_unit.hh:316:              resteered(false), mispredict(false), target(nullptr),
+./pred/bpred_unit.hh:330:              resteered(false), mispredict(false), target(nullptr),
+./pred/bpred_unit.hh:416:    bool predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
+./pred/tage_base.cc:375:TAGEBase::tagePredict(ThreadID tid, Addr branch_pc,
+./pred/multiperspective_perceptron_tage.cc:346:MPP_StatisticalCorrector::scPredict(ThreadID tid, Addr branch_pc,
+./pred/multiperspective_perceptron_tage.cc:532:    bool pred_taken = tage->tagePredict(tid, instPC, true, bi->tageBranchInfo);
+./pred/multiperspective_perceptron_tage.cc:534:    pred_taken = loopPredictor->loopPredict(tid, instPC, true,
+./pred/multiperspective_perceptron_tage.cc:545:    pred_taken = statisticalCorrector->scPredict(tid, instPC, true,
+./pred/tage_sc_l.hh:174:    bool predict(
+./pred/statistical_corrector.cc:193:StatisticalCorrector::gPredict(Addr branch_pc, int64_t hist,
+./pred/statistical_corrector.cc:230:StatisticalCorrector::scPredict(ThreadID tid, Addr branch_pc, bool cond_branch,
+./pred/statistical_corrector.hh:228:    virtual bool scPredict(
+./pred/statistical_corrector.hh:251:    int gPredict(

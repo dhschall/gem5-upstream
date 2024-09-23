@@ -1,0 +1,32 @@
+diff --git a/src/cpu/pred/2bit_local.cc b/src/cpu/pred/2bit_local.cc
+index 4d11cefb70..ad5b2c98d9 100644
+--- a/src/cpu/pred/2bit_local.cc
++++ b/src/cpu/pred/2bit_local.cc
+@@ -147,6 +147,12 @@ LocalBP::getLocalIndex(Addr &branch_addr)
+     return (branch_addr >> instShiftAmt) & indexMask;
+ }
+ 
++bool
++LocalBP::lookupHint(ThreadID tid, Addr pc)
++{
++    void *bpHistory = nullptr;
++    return lookup(tid, pc, bpHistory);
++}
+ 
+ } // namespace branch_prediction
+ } // namespace gem5
+diff --git a/src/cpu/pred/2bit_local.hh b/src/cpu/pred/2bit_local.hh
+index 618c734a93..5747230dcf 100644
+--- a/src/cpu/pred/2bit_local.hh
++++ b/src/cpu/pred/2bit_local.hh
+@@ -83,6 +83,10 @@ class LocalBP : public BPredUnit
+     void squash(ThreadID tid, void * &bpHistory) override
+     { assert(bpHistory == NULL); }
+ 
++    void branchPlaceholder(ThreadID tid, Addr pc,
++                                bool uncond, void * &bpHistory) override {};
++    bool lookupHint(ThreadID tid, Addr pc) override;
++
+   private:
+     /**
+      *  Returns the taken/not taken prediction given the value of the

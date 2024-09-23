@@ -1,0 +1,90 @@
+scons: Reading SConscript files ...
+
+You're missing the pre-commit/commit-msg hooks. These hook help to ensure your
+code follows gem5's style rules on git commit and your commit messages follow
+our commit message requirements. This script will now install these hooks in
+your .git/hooks/ directory.
+Press enter to continue, or ctrl-c to abort:
+ Cannot find 'pre-commit'. Please ensure all Python requirements are 
+installed. This can be done via 'pip install -r requirements.txt'.
+It is strongly recommended you install the pre-commit hooks before working with gem5. Do you want to continue compilation (y/n)?
+Mkdir("/mydata/gem5-fdp/build/ARM/gem5.build")
+Checking for linker -Wl,--as-needed support... (cached) yes
+Checking for linker -fuse-ld=mold support... (cached) yes
+Checking for compiler -gz support... (cached) yes
+Checking for linker -gz support... (cached) yes
+Info: Using Python config: python3-config
+Checking for C header file Python.h... (cached) yes
+Checking Python version... (cached) 3.10.12
+Checking for accept(0,0,0) in C++ library None... (cached) yes
+Checking for zlibVersion() in C++ library z... (cached) yes
+Checking for C library tcmalloc_minimal... (cached) yes
+Building in /mydata/gem5-fdp/build/ARM
+Using saved variables file(s) /mydata/gem5-fdp/build/ARM/gem5.build/variables
+Checking size of struct kvm_xsave ... (cached) yes
+Checking for backtrace_symbols_fd((void *)1, 0, 0) in C library None... (cached) yes
+Checking for C header file linux/if_tun.h... (cached) yes
+Checking for pkg-config package protobuf... (cached) yes
+Checking for GOOGLE_PROTOBUF_VERIFY_VERSION in C++ library protobuf... (cached) yes
+Checking for C header file fenv.h... (cached) yes
+Checking for C header file png.h... (cached) no
+Warning: Header file <png.h> not found.
+         This host has no libpng library.
+         Disabling support for PNG framebuffers.
+Checking for clock_nanosleep(0,0,NULL,NULL) in C library None... (cached) yes
+Checking for C header file valgrind/valgrind.h... (cached) no
+Checking for pkg-config package hdf5-serial... (cached) no
+Checking for pkg-config package hdf5... (cached) no
+Checking for H5Fcreate("", 0, 0, 0) in C library hdf5... (cached) no
+Warning: Couldn't find HDF5 C++ libraries. Disabling HDF5 support.
+Checking for shm_open("/test", 0, 0) in C library None... (cached) yes
+Checking for C header file linux/kvm.h... (cached) yes
+Checking for timer_create(CLOCK_MONOTONIC, NULL, NULL) in C library None... (cached) yes
+Checking for member exclude_host in struct perf_event_attr...(cached) yes
+Checking whether __i386__ is declared... (cached) no
+Checking whether __x86_64__ is declared... (cached) yes
+Checking for compiler -Wno-self-assign-overloaded support... (cached) yes
+Checking for linker -Wno-free-nonheap-object support... (cached) yes
+scons: done reading SConscript files.
+scons: Building targets ...
+ [VER TAGS]  -> ARM/sim/tags.cc
+ [     CXX] src/cpu/o3/bac.cc -> ARM/cpu/o3/bac.o
+src/cpu/o3/bac.cc:1093:20: error: unterminated argument list invoking macro "DPRINTF"
+ 1093 | } // namespace gem5
+      |                    ^
+src/cpu/o3/bac.cc: In member function ‘void gem5::o3::BAC::generateFetchTargets(gem5::ThreadID, bool&)’:
+src/cpu/o3/bac.cc:708:9: error: ‘DPRINTF’ was not declared in this scope
+  708 |         DPRINTF(PFC, "PC %#x %s\n",
+      |         ^~~~~~~
+src/cpu/o3/bac.cc:708:16: error: expected ‘}’ at end of input
+  708 |         DPRINTF(PFC, "PC %#x %s\n",
+      |                ^
+src/cpu/o3/bac.cc:693:23: note: to match this ‘{’
+  693 |     if (branch_found) {
+      |                       ^
+src/cpu/o3/bac.cc:708:16: error: expected ‘}’ at end of input
+  708 |         DPRINTF(PFC, "PC %#x %s\n",
+      |                ^
+src/cpu/o3/bac.cc:610:1: note: to match this ‘{’
+  610 | {
+      | ^
+src/cpu/o3/bac.cc: At global scope:
+src/cpu/o3/bac.cc:708:16: error: expected ‘}’ at end of input
+  708 |         DPRINTF(PFC, "PC %#x %s\n",
+      |                ^
+src/cpu/o3/bac.cc:64:1: note: to match this ‘{’
+   64 | {
+      | ^
+src/cpu/o3/bac.cc:708:16: error: expected ‘}’ at end of input
+  708 |         DPRINTF(PFC, "PC %#x %s\n",
+      |                ^
+src/cpu/o3/bac.cc:61:1: note: to match this ‘{’
+   61 | {
+      | ^
+scons: *** [build/ARM/cpu/o3/bac.o] Error 1
+scons: building terminated because of errors.
+*** Summary of Warnings ***
+Warning: Header file <png.h> not found.
+         This host has no libpng library.
+         Disabling support for PNG framebuffers.
+Warning: Couldn't find HDF5 C++ libraries. Disabling HDF5 support.

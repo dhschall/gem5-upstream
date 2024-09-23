@@ -339,8 +339,6 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
     // If prediction and actual direction are the same
     // at commit the prediction was correct.
     hist->actuallyTaken = hist->predTaken;
-    if(seqNum == 1517)
-        bool aa = true;
     set(pc, *hist->target);
 
     DPRINTF(Branch, "%s(tid:%i, sn:%i, PC:%#x, %s) -> taken:%i, target:%s "
@@ -405,8 +403,6 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
     if (hist->mispredict) {
         stats.mispredicted[tid][hist->type]++;
     }
-    if(hist->seqNum == 1517)
-        bool aa = true;
 
     DPRINTF(Branch, "Commit branch: sn:%llu, PC:%#x %s, "
                     "pred:%i, taken:%i, target:%#x\n",
@@ -450,8 +446,9 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
                          hist->type,
                          hist->inst);
 
-	if(is_pfc)
+	if(is_pfc){
 	    stats.correctPFC++;
+        }
     }
 }
 
@@ -529,6 +526,8 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
     //     PC-relative, branch was predicted incorrectly. If so, a signal
     //     to the fetch stage is sent to squash history after the mispredict
 
+    if(squashed_sn ==  1003)
+        bool aa = true;
     History &pred_hist = predHist[tid];
 
     ++stats.condIncorrect;
@@ -588,8 +587,6 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
 
         // Remember the correct direction and target for the update at commit.
         hist->mispredict = true;
-        if(squashed_sn == 1517)
-            bool aa = true; 
         hist->actuallyTaken = actually_taken;
         set(hist->target,  corr_target);
 

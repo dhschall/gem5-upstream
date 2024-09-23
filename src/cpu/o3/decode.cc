@@ -756,7 +756,9 @@ Decode::decodeInsts(ThreadID tid)
                        "PFC triggered by a conditional branch: Wrong predicted target:  %s \
                        PredPC: %s\n",
 		       tid, inst->seqNum, inst->readPredTarg(), *target);
-
+               DPRINTF(PFC,
+                       "PC %s trigger PFC \n", inst->pcState());
+             
 	       inst->setPredTarg(*target);
 	       break;
 	   }

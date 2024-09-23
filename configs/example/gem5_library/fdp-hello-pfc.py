@@ -62,6 +62,7 @@ import argparse
 from m5.objects import (
     AssociativeBTB,
     LTAGE,
+    LocalBP,
     TaggedPrefetcher,
     FetchDirectedPrefetcher,
     L2XBar,
@@ -149,6 +150,7 @@ memory = SingleChannelDDR3_1600(size="32MB")
 ## FDP needs the AssociativeBTB.
 class BTB(AssociativeBTB):
     numEntries = "64"
+    #numEntries = "8kB"
     assoc = 4
 
 
@@ -234,7 +236,14 @@ else:  # Variable length ISA (x86) must search every byte
 
 # Use the AssociativeBTB as its the only one that supports
 # the decoupled front-end at the moment.
-cpu.branchPred = BPLTage()
+cpu.branchPred = BPLTage(
+    instShiftAmt = 2
+)
+#cpu.branchPred = LocalBP(
+#    localPredictorSize=16*1024,
+#    BTB = BTB(),
+#    instShiftAmt = 2,
+#)
 
 # Finally the `decoupledFrontEnd` parameter enables the decoupled front-end.
 # Disable it to get the baseline.

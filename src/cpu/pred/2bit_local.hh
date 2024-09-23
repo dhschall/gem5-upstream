@@ -83,6 +83,10 @@ class LocalBP : public BPredUnit
     void squash(ThreadID tid, void * &bpHistory) override
     { assert(bpHistory == NULL); }
 
+    void branchPlaceholder(ThreadID tid, Addr pc,
+                                bool uncond, void * &bpHistory) override {};
+    bool lookupHint(ThreadID tid, Addr pc) override;
+
   private:
     /**
      *  Returns the taken/not taken prediction given the value of the

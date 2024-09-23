@@ -47,6 +47,7 @@
 #include "cpu/o3/limits.hh"
 #include "debug/Activity.hh"
 #include "debug/BAC.hh"
+#include "debug/PFC.hh"
 #include "debug/Branch.hh"
 #include "debug/Drain.hh"
 #include "debug/Fetch.hh"
@@ -658,6 +659,7 @@ BAC::generateFetchTargets(ThreadID tid, bool &status_change)
 	    // It only works for arm now,
 	    // since arm's instruction length is fixed.
 	    bool direction_hint = bpu->predictHint(search_addr, tid);
+            DPRINTF(PFC, "Predict hint for PC %#x taken?:%i\n", search_addr, direction_hint);
 	    curFT->setDireHint(search_addr, direction_hint);
 	}	
 
@@ -695,6 +697,9 @@ BAC::generateFetchTargets(ThreadID tid, bool &status_change)
         // Now make the actual prediction. Note the BPU will advance
         // the PC to the next instruction.
         predict_taken = predict(tid, staticInst, curFT, *next_pc);
+
+
+
 
         DPRINTF(BAC, "[tid:%i, ftn:%llu] Branch found at PC %#x "
                 "taken?:%i, target:%#x\n",

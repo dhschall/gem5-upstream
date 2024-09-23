@@ -147,6 +147,12 @@ LocalBP::getLocalIndex(Addr &branch_addr)
     return (branch_addr >> instShiftAmt) & indexMask;
 }
 
+bool
+LocalBP::lookupHint(ThreadID tid, Addr pc)
+{
+    void *bpHistory = nullptr;
+    return lookup(tid, pc, bpHistory);
+}
 
 } // namespace branch_prediction
 } // namespace gem5
