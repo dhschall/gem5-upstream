@@ -25,10 +25,10 @@ int main(int argc, char* argv[])
 
     
     for (int iter=0; iter < num_iter; iter++) {
-        //printf("iter: %d\n", iter);
-        //fflush(stdout);
+       // printf("iter: %d\n", iter);
+       // fflush(stdout);
         int sum = 0;
-        m5_reset_stats(0, 0);
+    m5_reset_stats(0, 0);
 
     if (a[0] > 0)
         sum += 1;
@@ -4127,8 +4127,8 @@ int main(int argc, char* argv[])
     if (a[3] > 3)
         sum += 4;
 
+    m5_dump_stats(0, 0);
 
-        m5_dump_stats(0, 0);
 
         //printf("Iter:%d = Sum: %d\n", iter, sum);
     }

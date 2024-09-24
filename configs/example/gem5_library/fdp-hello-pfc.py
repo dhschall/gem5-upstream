@@ -78,8 +78,12 @@ from gem5.components.boards.abstract_board import AbstractBoard
 from gem5.components.cachehierarchies.classic.caches.l1icache import L1ICache
 from gem5.components.cachehierarchies.classic.caches.mmu_cache import MMUCache
 from gem5.components.cachehierarchies.classic.caches.l1dcache import L1DCache
+from gem5.components.cachehierarchies.classic.caches.l2cache import L2Cache
 from gem5.components.cachehierarchies.classic.private_l1_cache_hierarchy import (
     PrivateL1CacheHierarchy,
+)
+from gem5.components.cachehierarchies.classic.private_l1_private_l2_cache_hierarchy import (
+    PrivateL1PrivateL2CacheHierarchy
 )
 from gem5.components.processors.simple_processor import SimpleProcessor
 from gem5.components.processors.base_cpu_processor import BaseCPUProcessor
@@ -161,11 +165,12 @@ class BPLTage(LTAGE):
 
 
 # We need a custom cache hierarchy to incorporate the FDP prefetcher.
-class CacheHierarchy(PrivateL1CacheHierarchy):
-    def __init__(self, icache, dcache):
-        super().__init__(l1i_size="", l1d_size="")
+class CacheHierarchy(PrivateL1PrivateL2CacheHierarchy):
+    def __init__(self, icache, dcache, l2cache):
+        super().__init__(l1i_size="", l1d_size="", l2_size="")
         self.icache = icache
         self.dcache = dcache
+        self.l2cache = l2cache
 
     def incorporate_cache(self, board: AbstractBoard) -> None:
 
@@ -177,17 +182,20 @@ class CacheHierarchy(PrivateL1CacheHierarchy):
 
         cpu = board.get_processor().get_cores()[0]
 
+        self.l2bus = L2XBar()
         # Create and connect the instruction cache
         cpu.connect_icache(self.icache.cpu_side)
-        self.icache.mem_side = self.membus.cpu_side_ports
+        self.icache.mem_side = self.l2bus.cpu_side_ports
 
         # Also the data cache
         cpu.connect_dcache(self.dcache.cpu_side)
-        self.dcache.mem_side = self.membus.cpu_side_ports
+        self.dcache.mem_side = self.l2bus.cpu_side_ports
 
+        self.l2bus.mem_side_ports = self.l2cache.cpu_side
+        self.l2cache.mem_side = self.membus.cpu_side_ports
         # Finally the cache for the MMU page walks
         self.mmucache = MMUCache(size="8KiB")
-        self.mmucache.mem_side = self.membus.cpu_side_ports
+        self.mmucache.mem_side = self.l2bus.cpu_side_ports
         self.mmubus = L2XBar(width=64)
         self.mmubus.mem_side_ports = self.mmucache.cpu_side
         cpu.connect_walker_ports(
@@ -204,6 +212,49 @@ class CacheHierarchy(PrivateL1CacheHierarchy):
             )
         else:
             cpu.connect_interrupt()
+#class CacheHierarchy(PrivateL1CacheHierarchy):
+#    def __init__(self, icache, dcache):
+#        super().__init__(l1i_size="", l1d_size="")
+#        self.icache = icache
+#        self.dcache = dcache
+#
+#    def incorporate_cache(self, board: AbstractBoard) -> None:
+#
+#        # Set up the system port for functional access from the simulator.
+#        board.connect_system_port(self.membus.cpu_side_ports)
+#
+#        for _, port in board.get_memory().get_mem_ports():
+#            self.membus.mem_side_ports = port
+#
+#        cpu = board.get_processor().get_cores()[0]
+#
+#        # Create and connect the instruction cache
+#        cpu.connect_icache(self.icache.cpu_side)
+#        self.icache.mem_side = self.membus.cpu_side_ports
+#
+#        # Also the data cache
+#        cpu.connect_dcache(self.dcache.cpu_side)
+#        self.dcache.mem_side = self.membus.cpu_side_ports
+#
+#        # Finally the cache for the MMU page walks
+#        self.mmucache = MMUCache(size="8KiB")
+#        self.mmucache.mem_side = self.membus.cpu_side_ports
+#        self.mmubus = L2XBar(width=64)
+#        self.mmubus.mem_side_ports = self.mmucache.cpu_side
+#        cpu.connect_walker_ports(
+#            self.mmubus.cpu_side_ports, self.mmubus.cpu_side_ports
+#        )
+#
+#        if board.has_coherent_io():
+#            self._setup_io_cache(board)
+#
+#        ## Connect the interrupt ports
+#        if board.get_processor().get_isa() == ISA.X86:
+#            cpu.connect_interrupt(
+#                self.membus.mem_side_ports, self.membus.cpu_side_ports
+#            )
+#        else:
+#            cpu.connect_interrupt()
 
 
 # 1. Decoupled front-end ------------------------------------------------
@@ -237,7 +288,9 @@ else:  # Variable length ISA (x86) must search every byte
 # Use the AssociativeBTB as its the only one that supports
 # the decoupled front-end at the moment.
 cpu.branchPred = BPLTage(
-    instShiftAmt = 2
+    instShiftAmt = 2,
+    takenOnlyHistory = True,
+    requiresBTBHit = True,
 )
 #cpu.branchPred = LocalBP(
 #    localPredictorSize=16*1024,
@@ -285,7 +338,8 @@ else:
 icache.prefetcher.registerMMU(processor.cores[0].core.mmu)
 
 # Incorporate the icache into the cache hierarchy.
-cache_hierarchy = CacheHierarchy(icache, L1DCache(size="32kB"))
+#cache_hierarchy = CacheHierarchy(icache, L1DCache(size="32kB"))
+cache_hierarchy = CacheHierarchy(icache, L1DCache(size="32kB"), L2Cache(size="1MB"))
 
 # The gem5 library simble board which can be used to run simple SE-mode
 # simulations.

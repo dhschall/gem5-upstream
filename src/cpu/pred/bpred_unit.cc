@@ -526,8 +526,6 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
     //     PC-relative, branch was predicted incorrectly. If so, a signal
     //     to the fetch stage is sent to squash history after the mispredict
 
-    if(squashed_sn ==  1003)
-        bool aa = true;
     History &pred_hist = predHist[tid];
 
     ++stats.condIncorrect;

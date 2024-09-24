@@ -626,7 +626,8 @@ TAGEBase::updateHistories(ThreadID tid, Addr branch_pc, bool speculative,
     // will not be updated or the branch was incorrect in which case the
     // branches afterwards where squashed and the history was restored.
     if (!bi->valid && bi->condBranch) {
-        calculateIndicesAndTags(tid, branch_pc, bi);
+        tagePredict(tid, branch_pc, true, bi);
+        //calculateIndicesAndTags(tid, branch_pc, bi);
     }
 
     ThreadHistory& tHist = threadHistory[tid];
