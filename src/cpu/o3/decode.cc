@@ -751,13 +751,11 @@ Decode::decodeInsts(ThreadID tid)
 	       cpu->recordPFCBranch(inst->seqNum);
 	       //BTB-miss conditional branch with a taken hint.
 	       squash(inst, true, inst->threadNumber);
-               //DPRINTF(PFC,
-               //        "[tid:%i] [sn:%llu] "
-               //        "PFC triggered by a conditional branch: Wrong predicted target:  %s \
-               //        PredPC: %s\n",
-	       //        tid, inst->seqNum, inst->readPredTarg(), *target);
-               //DPRINTF(PFC,
-               //        "PC %s trigger PFC \n", inst->pcState());
+               DPRINTF(PFC,
+                       "[tid:%i] [sn:%llu] "
+                       "PFC triggered by a conditional branch: Wrong predicted target:  %s \
+                       PredPC: %s\n",
+	               tid, inst->seqNum, inst->readPredTarg(), *target);
              
 	       inst->setPredTarg(*target);
 	       break;

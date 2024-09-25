@@ -43,7 +43,7 @@
 #define __CPU_PRED_BPRED_UNIT_HH__
 
 #include <deque>
-#include <unordered_set>
+#include <set>
 
 #include "base/statistics.hh"
 #include "base/types.hh"
@@ -453,7 +453,7 @@ class BPredUnit : public SimObject
     std::vector<History> predHist;
 
     /** Record SeqNums for branches that caused pfc */
-    std::unordered_set<InstSeqNum> pfc_record;
+    std::set<InstSeqNum> pfc_record;
 
     /** The BTB. */
     BranchTargetBuffer * btb;

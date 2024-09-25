@@ -136,11 +136,16 @@ BPredUnit::recordPFCBranch(const InstSeqNum &seqNum)
 bool
 BPredUnit::checkPFCRecord(const InstSeqNum &seqNum)
 {
+    bool PFCTriggered = false;
+
     if(pfc_record.find(seqNum) != pfc_record.end()){
-        pfc_record.erase(seqNum);
-        return true;
+        PFCTriggered =  true;
     }
-    return false;
+
+    auto it = pfc_record.upper_bound(seqNum);
+    pfc_record.erase(pfc_record.begin(), it);
+    
+    return PFCTriggered;
 }
 
 bool
