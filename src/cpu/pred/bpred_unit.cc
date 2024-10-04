@@ -451,6 +451,12 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
                          hist->type,
                          hist->inst);
 
+        if(!hist->btbHit){
+            ++stats.BTBMispredicted;
+            if(hist->condPred)
+                ++stats.predTakenBTBMiss;
+        }
+
 	if(is_pfc){
 	    stats.correctPFC++;
         }
@@ -648,9 +654,9 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
         // Check if the misprediction was because there was a
         // BTB miss.
         if (actually_taken &&!hist->btbHit) {
-            ++stats.BTBMispredicted;
-            if (hist->condPred)
-                ++stats.predTakenBTBMiss;
+            //++stats.BTBMispredicted;
+            //if (hist->condPred)
+            //    ++stats.predTakenBTBMiss;
 
             btb->incorrectTarget(hist->pc, hist->type);
 

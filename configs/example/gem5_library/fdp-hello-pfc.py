@@ -153,8 +153,8 @@ memory = SingleChannelDDR3_1600(size="32MB")
 
 ## FDP needs the AssociativeBTB.
 class BTB(AssociativeBTB):
-    numEntries = "64"
-    #numEntries = "8kB"
+    #numEntries = "64"
+    numEntries = "8kB"
     assoc = 4
 
 
