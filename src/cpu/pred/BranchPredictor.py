@@ -179,6 +179,12 @@ class BranchPredictor(SimObject):
 
     numThreads = Param.Unsigned(Parent.numThreads, "Number of threads")
     instShiftAmt = Param.Unsigned(2, "Number of bits to shift instructions by")
+    onlyTaken_set = Param.Bool(
+        False, "Use a set to recognize if a branch is never-taken-before"
+    )
+    onlyTaken_BTB = Param.Bool(
+        False, "Use BTB to roughly recognize if a branch is never-taken-before"
+    )
     requiresBTBHit = Param.Bool(
         False,
         "Requires a BTB hit to detect if "

@@ -445,6 +445,10 @@ class BPredUnit : public SimObject
     /** Number of bits to shift instructions by for predictor addresses. */
     const unsigned instShiftAmt;
 
+    /** Flags used for experimental predicotr update mechanism. */
+    const bool onlyTaken_set;
+    const bool onlyTaken_BTB;
+
     /**
      * The per-thread predictor history. This is used to update the predictor
      * as instructions are committed, or restore it to the proper state after
@@ -454,6 +458,9 @@ class BPredUnit : public SimObject
 
     /** Record SeqNums for branches that caused pfc */
     std::set<InstSeqNum> pfc_record;
+
+    /** A set that helps commitbranch() recognize if a branch is never-taken-before, just for experimental purpose. */
+    std::set<Addr> takenBeforeBranches;
 
     /** The BTB. */
     BranchTargetBuffer * btb;
@@ -503,8 +510,12 @@ class BPredUnit : public SimObject
         statistics::Scalar BTBLookups;
         /** Stat for number of BTB updates. */
         statistics::Scalar BTBUpdates;
+        /** Stat for number of BTB-miss cond-branches with taken hint. */
+        statistics::Scalar postFetchCorrection;
         /** Stat for number of correct PFCs */
         statistics::Scalar correctPFC;
+        /** Stat for the accuracy of PFC */
+        statistics::Formula PFCAccuracy;
         /** Stat for number of BTB hits. */
         statistics::Scalar BTBHits;
         /** Stat for number for the ratio between BTB hits and BTB lookups. */

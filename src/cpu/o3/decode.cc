@@ -138,8 +138,6 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
                "Number of times decode resolved a branch"),
       ADD_STAT(branchMispred, statistics::units::Count::get(),
                "Number of times decode detected a branch misprediction"),
-      ADD_STAT(postFetchCorrection, statistics::units::Count::get(),
-               "Number of times PFC detected a BTB-miss cond-branch with taken hint"),
       ADD_STAT(controlMispred, statistics::units::Count::get(),
                "Number of times decode detected an instruction incorrectly "
                "predicted as a control"),
@@ -740,12 +738,12 @@ Decode::decodeInsts(ThreadID tid)
 	//With PFC, a BTB-miss conditional branch needs to be examined.
 	//And BTB-miss unocnditional branch is already covered by code above.
 	if(pfc && inst->isDirectCtrl() &&
-	   inst->isCondCtrl() && !inst->readPredTaken())
+	   inst->isCondCtrl() && !inst->readPredTaken() && 
+	   (!inst->isMicroop() || inst->isLastMicroop()))
 	{
            std::unique_ptr<PCStateBase> target = inst->branchTarget();
 	   bool direction_hint = inst->readHintTaken(); 
 	   if(direction_hint){
-	       ++stats.postFetchCorrection;
 	       inst->pfc = true;
                
 	       cpu->recordPFCBranch(inst->seqNum);

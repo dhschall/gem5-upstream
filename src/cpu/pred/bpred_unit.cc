@@ -61,6 +61,8 @@ BPredUnit::BPredUnit(const Params &params)
       numThreads(params.numThreads),
       requiresBTBHit(params.requiresBTBHit),
       instShiftAmt(params.instShiftAmt),
+      onlyTaken_set(params.onlyTaken_set),
+      onlyTaken_BTB(params.onlyTaken_BTB),
       predHist(numThreads),
       btb(params.BTB),
       ras(params.RAS),
@@ -130,6 +132,7 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
 void
 BPredUnit::recordPFCBranch(const InstSeqNum &seqNum)
 {
+    ++stats.postFetchCorrection;
     pfc_record.insert(seqNum); 
 }
 
@@ -416,11 +419,24 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
                 hist->target->instAddr());
 
     // Update the branch predictor with the correct results.
-    update(tid, hist->pc,
-                hist->actuallyTaken,
-                hist->bpHistory, false,
-                hist->inst,
-                hist->target->instAddr());
+    if(onlyTaken_set || onlyTaken_BTB){
+        if(hist->actuallyTaken ||
+           (onlyTaken_set && takenBeforeBranches.find(hist->pc) != takenBeforeBranches.end()) ||
+           (onlyTaken_BTB && btb->valid(tid, hist->pc))){
+
+            update(tid, hist->pc,
+                        hist->actuallyTaken,
+                        hist->bpHistory, false,
+                        hist->inst,
+                        hist->target->instAddr());
+         }
+    }else{
+        update(tid, hist->pc,
+                    hist->actuallyTaken,
+                    hist->bpHistory, false,
+                    hist->inst,
+                    hist->target->instAddr());
+    }
 
     // Commite also Indirect predictor and RAS
     if (iPred) {
@@ -446,6 +462,10 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
                     hist->seqNum, hist->pc, hist->target->instAddr());
 
         stats.BTBUpdates++;
+        //Record the branch in the takenBeforeBranches set.
+        if(onlyTaken_set){
+            takenBeforeBranches.insert(hist->pc);
+        } 
         btb->update(tid, hist->pc,
                         *hist->target,
                          hist->type,
@@ -453,6 +473,7 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
 
         if(!hist->btbHit){
             ++stats.BTBMispredicted;
+	    btb->incorrectTarget(hist->pc, hist->type);
             if(hist->condPred)
                 ++stats.predTakenBTBMiss;
         }
@@ -658,7 +679,7 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
             //if (hist->condPred)
             //    ++stats.predTakenBTBMiss;
 
-            btb->incorrectTarget(hist->pc, hist->type);
+            //btb->incorrectTarget(hist->pc, hist->type);
 
             DPRINTF(Branch,"[tid:%i] [squash sn:%llu] "
                 "BTB miss PC %#x %s \n", tid, squashed_sn,
@@ -730,8 +751,12 @@ BPredUnit::BPredUnitStats::BPredUnitStats(
                "Number of BTB lookups"),
       ADD_STAT(BTBUpdates, statistics::units::Count::get(),
                "Number of BTB lookups"),
+      ADD_STAT(postFetchCorrection, statistics::units::Count::get(),
+               "Number of re-steerings caused by a BTB-miss cond-branch with taken hint"),
       ADD_STAT(correctPFC, statistics::units::Count::get(),
                "Number of correct PFCs"),
+      ADD_STAT(PFCAccuracy, statistics::units::Ratio::get(), "correct PFC Ratio",
+               correctPFC / postFetchCorrection),
       ADD_STAT(BTBHits, statistics::units::Count::get(),
                "Number of BTB hits"),
       ADD_STAT(BTBHitRatio, statistics::units::Ratio::get(), "BTB Hit Ratio",
@@ -755,6 +780,7 @@ BPredUnit::BPredUnitStats::BPredUnitStats(
                "Number branches predicted taken but turn out to be not taken")
 {
     using namespace statistics;
+    PFCAccuracy.precision(5);
     BTBHitRatio.precision(6);
 
     lookups
