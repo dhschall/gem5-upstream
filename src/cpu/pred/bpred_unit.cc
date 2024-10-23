@@ -420,16 +420,16 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
 
     // Update the branch predictor with the correct results.
     if(onlyTaken_set || onlyTaken_BTB){
-        if(hist->actuallyTaken ||
-           (onlyTaken_set && takenBeforeBranches.find(hist->pc) != takenBeforeBranches.end()) ||
-           (onlyTaken_BTB && btb->valid(tid, hist->pc))){
+        //Donot update predictor counter for a not-taken instance that was never-taken-before.
+        bool update_counter = hist->actuallyTaken ||
+                              (onlyTaken_set && takenBeforeBranches.find(hist->pc) != takenBeforeBranches.end()) ||
+                              (onlyTaken_BTB && btb->valid(tid, hist->pc));
 
-            update(tid, hist->pc,
-                        hist->actuallyTaken,
-                        hist->bpHistory, false,
-                        hist->inst,
-                        hist->target->instAddr());
-         }
+        updateTakenBefore(tid, hist->pc,
+                    hist->actuallyTaken,
+                    hist->bpHistory, false,
+                    hist->inst,
+                    hist->target->instAddr(), update_counter);
     }else{
         update(tid, hist->pc,
                     hist->actuallyTaken,

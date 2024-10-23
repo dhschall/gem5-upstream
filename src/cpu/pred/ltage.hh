@@ -85,6 +85,10 @@ class LTAGE : public TAGE
     void update(ThreadID tid, Addr branch_addr, bool taken, void * &bpHistory,
                 bool squashed, const StaticInstPtr & inst,
                 Addr corrTarget) override;
+    //use update_counter to flag if we don't update counter for a never-taken-before not-taken branch
+    void updateTakenBefore(ThreadID tid, Addr branch_addr, bool taken, void * &bpHistory,
+                bool squashed, const StaticInstPtr & inst,
+                Addr corrTarget, bool update_counter = true) override;
     virtual void branchPlaceholder(ThreadID tid, Addr pc,
                                    bool uncond, void * &bpHistory) override;
 

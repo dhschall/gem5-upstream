@@ -156,6 +156,48 @@ LTAGE::update(ThreadID tid, Addr branch_pc, bool taken, void* &bpHistory,
 
     delete bi; bpHistory = nullptr;
 }
+// PREDICTOR UPDATE
+void
+LTAGE::updateTakenBefore(ThreadID tid, Addr branch_pc, bool taken, void* &bpHistory,
+              bool squashed, const StaticInstPtr & inst, Addr corrTarget, bool update_counter)
+{
+    assert(bpHistory);
+
+    LTageBranchInfo* bi = static_cast<LTageBranchInfo*>(bpHistory);
+
+    if (squashed) {
+        if (tage->isSpeculativeUpdateEnabled()) {
+            // This restores the global history, then update it
+            // and recomputes the folded histories.
+            tage->squash(tid, taken, bi->tageBranchInfo, corrTarget);
+
+            if (bi->tageBranchInfo->condBranch) {
+                loopPredictor->squashLoop(bi->lpBranchInfo);
+            }
+        }
+        return;
+    }
+
+    int nrand = random_mt.random<int>() & 3;
+    if (update_counter && bi->tageBranchInfo->condBranch) {
+        DPRINTF(LTage, "Updating tables for branch:%lx; taken?:%d\n",
+                branch_pc, taken);
+        tage->updateStats(taken, bi->tageBranchInfo);
+
+        loopPredictor->updateStats(taken, bi->lpBranchInfo);
+
+        loopPredictor->condBranchUpdate(tid, branch_pc, taken,
+            bi->tageBranchInfo->tagePred, bi->lpBranchInfo, instShiftAmt);
+
+        tage->condBranchUpdate(tid, branch_pc, taken, bi->tageBranchInfo,
+            nrand, corrTarget, bi->lpBranchInfo->predTaken);
+    }
+
+    tage->updateHistories(tid, branch_pc, false, taken, corrTarget,
+                          bi->tageBranchInfo, inst);
+
+    delete bi; bpHistory = nullptr;
+}
 
 void
 LTAGE::squash(ThreadID tid, void * &bpHistory)

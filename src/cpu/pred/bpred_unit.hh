@@ -220,6 +220,10 @@ class BPredUnit : public SimObject
                    void * &bpHistory, bool squashed,
                    const StaticInstPtr &inst, Addr corrTarget) = 0;
 
+    virtual void updateTakenBefore(ThreadID tid, Addr pc, bool taken,
+                   void * &bpHistory, bool squashed,
+                   const StaticInstPtr &inst, Addr corrTarget, bool update_counter = true){}
+
     /**
      * Special function for the decoupled front-end. In it there can be
      * branches which are not detected by the BPU in the first place as it

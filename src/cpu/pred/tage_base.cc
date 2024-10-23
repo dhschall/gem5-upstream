@@ -651,7 +651,7 @@ TAGEBase::updateHistories(ThreadID tid, Addr branch_pc, bool speculative,
             bi->ghist = (((branch_pc >> instShiftAmt) >> 2)
                       ^  ((target >> instShiftAmt) >> 3)) & 0x3;
             bi->nGhist = 2;
-    }
+         }
 
     } else {
         // For normal direction history update the history by
