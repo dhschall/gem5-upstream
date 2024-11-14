@@ -1,0 +1,93 @@
+40c40
+< from m5.SimObject import *
+---
+> from m5.objects.ClockedObject import ClockedObject
+43,46c43
+< 
+< from m5.objects.ClockedObject import ClockedObject
+< from m5.objects.IndexingPolicies import *
+< from m5.objects.ReplacementPolicies import *
+---
+> from m5.SimObject import *
+75d71
+<     # abstract = True
+78,84c74
+<     numEntries = Param.Unsigned(Parent.RASSize, "Number of RAS entries")
+<     corruptionDetection = Param.Bool(
+<         False,
+<         "When corruption detection is "
+<         "enabled no entry will returned when "
+<         "the stack was corrupted.",
+<     )
+---
+>     numEntries = Param.Unsigned(16, "Number of RAS entries")
+108,135d97
+< class AssociativeBTB(BranchTargetBuffer):
+<     type = "AssociativeBTB"
+<     cxx_class = "gem5::branch_prediction::AssociativeBTB"
+<     cxx_header = "cpu/pred/associative_btb.hh"
+< 
+<     numEntries = Param.MemorySize("4096", "Number of entries of BTB entries")
+<     assoc = Param.Unsigned(8, "Associativity of the BTB")
+<     indexing_policy = Param.BaseIndexingPolicy(
+<         SetAssociative(
+<             entry_size=1, assoc=Parent.assoc, size=Parent.numEntries
+<         ),
+<         "Indexing policy of the BTB",
+<     )
+<     replacement_policy = Param.BaseReplacementPolicy(
+<         LRURP(), "Replacement policy of the table"
+<     )
+< 
+<     tagBits = Param.Unsigned(16, "Size of the BTB tags, in bits")
+<     useTagCompression = Param.Bool(
+<         False,
+<         "Use a tag compression function as"
+<         "described in https://ieeexplore.ieee.org/document/9528930",
+<     )
+<     instShiftAmt = Param.Unsigned(
+<         Parent.instShiftAmt, "Number of bits to shift instructions by"
+<     )
+< 
+< 
+143,148d104
+<     takenOnlyHistory = Param.Bool(
+<         Parent.takenOnlyHistory,
+<         "Build the global "
+<         "history using taken-only branch target history instead of direction "
+<         "history from all branches",
+<     )
+165c121
+<         3,
+---
+>         256,
+168c124,125
+<         "be recoverd.",
+---
+>         "be recovered. Set this to an appropriate value respective the CPU"
+>         "pipeline depth or a high value e.g. 256 to make it 'unlimited'.",
+182,187d138
+<     onlyTaken_set = Param.Bool(
+<         False, "Use a set to recognize if a branch is never-taken-before"
+<     )
+<     onlyTaken_BTB = Param.Bool(
+<         False, "Use BTB to roughly recognize if a branch is never-taken-before"
+<     )
+190,191c141,146
+<         "Requires a BTB hit to detect if "
+<         " a branch was a return or indirect branch.",
+---
+>         "Requires the BTB to hit for returns and indirect branches. For an"
+>         "advanced front-end there is no other way than a BTB hit to know "
+>         "that the branch exists in the first place. Furthermore, the BPU "
+>         "needs to know the branch type to make the correct RAS operations. "
+>         "This info is only available from the BTB. "
+>         "Low-end CPUs predecoding might be used to identify branches. ",
+194,197c149,150
+<     RASSize = Param.Unsigned(16, "RAS size")
+< 
+<     BTB = Param.BranchTargetBuffer(SimpleBTB(), "Branch target buffer (BTB)")
+<     RAS = Param.ReturnAddrStack(
+---
+>     btb = Param.BranchTargetBuffer(SimpleBTB(), "Branch target buffer (BTB)")
+>     ras = Param.ReturnAddrStack(

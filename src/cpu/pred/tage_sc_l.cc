@@ -403,10 +403,10 @@ TAGE_SC_L::predict(ThreadID tid, Addr branch_pc, bool cond_branch, void* &b)
     bool bias = (bi->tageBranchInfo->longestMatchPred !=
                  bi->tageBranchInfo->altTaken);
 
-    pred_taken = statisticalCorrector->scPredict(tid, branch_pc, cond_branch,
-            bi->scBranchInfo, pred_taken, bias, use_tage_ctr, tage_ctr,
-            tage->getTageCtrBits(), bi->tageBranchInfo->hitBank,
-            bi->tageBranchInfo->altBank, tage->getPathHist(tid));
+    //pred_taken = statisticalCorrector->scPredict(tid, branch_pc, cond_branch,
+    //        bi->scBranchInfo, pred_taken, bias, use_tage_ctr, tage_ctr,
+    //        tage->getTageCtrBits(), bi->tageBranchInfo->hitBank,
+    //        bi->tageBranchInfo->altBank, tage->getPathHist(tid));
 
     if (bi->scBranchInfo->usedScPred) {
         bi->tageBranchInfo->provider = SC;
@@ -448,13 +448,13 @@ TAGE_SC_L::update(ThreadID tid, Addr branch_pc, bool taken, void * &bpHistory,
 
         loopPredictor->updateStats(taken, bi->lpBranchInfo);
 
-        statisticalCorrector->updateStats(taken, bi->scBranchInfo);
+        //statisticalCorrector->updateStats(taken, bi->scBranchInfo);
 
         bool bias = (bi->tageBranchInfo->longestMatchPred !=
                      bi->tageBranchInfo->altTaken);
-        statisticalCorrector->condBranchUpdate(tid, branch_pc, taken,
-            bi->scBranchInfo, corrTarget, bias, bi->tageBranchInfo->hitBank,
-            bi->tageBranchInfo->altBank, tage->getPathHist(tid));
+        //statisticalCorrector->condBranchUpdate(tid, branch_pc, taken,
+        //    bi->scBranchInfo, corrTarget, bias, bi->tageBranchInfo->hitBank,
+        //    bi->tageBranchInfo->altBank, tage->getPathHist(tid));
 
         loopPredictor->condBranchUpdate(tid, branch_pc, taken,
                 bi->tageBranchInfo->tagePred, bi->lpBranchInfo, instShiftAmt);
@@ -464,8 +464,8 @@ TAGE_SC_L::update(ThreadID tid, Addr branch_pc, bool taken, void * &bpHistory,
     }
 
     if (!tage->isSpeculativeUpdateEnabled()) {
-        statisticalCorrector->scHistoryUpdate(branch_pc, inst, taken,
-                                              bi->scBranchInfo, corrTarget);
+        //statisticalCorrector->scHistoryUpdate(branch_pc, inst, taken,
+         //                                     bi->scBranchInfo, corrTarget);
 
         tage->updateHistories(tid, branch_pc, false, taken, corrTarget,
                               bi->tageBranchInfo, inst);

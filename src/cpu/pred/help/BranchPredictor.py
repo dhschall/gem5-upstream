@@ -37,13 +37,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from m5.SimObject import *
+from m5.objects.ClockedObject import ClockedObject
 from m5.params import *
 from m5.proxy import *
-
-from m5.objects.ClockedObject import ClockedObject
-from m5.objects.IndexingPolicies import *
-from m5.objects.ReplacementPolicies import *
+from m5.SimObject import *
 
 
 class BranchType(Enum):
@@ -74,13 +71,7 @@ class ReturnAddrStack(SimObject):
     cxx_header = "cpu/pred/ras.hh"
 
     numThreads = Param.Unsigned(Parent.numThreads, "Number of threads")
-    numEntries = Param.Unsigned(Parent.RASSize, "Number of RAS entries")
-    corruptionDetection = Param.Bool(
-        False,
-        "When corruption detection is "
-        "enabled no entry will returned when "
-        "the stack was corrupted.",
-    )
+    numEntries = Param.Unsigned(16, "Number of RAS entries")
 
 
 class BranchTargetBuffer(ClockedObject):
@@ -104,34 +95,6 @@ class SimpleBTB(BranchTargetBuffer):
     )
 
 
-class AssociativeBTB(BranchTargetBuffer):
-    type = "AssociativeBTB"
-    cxx_class = "gem5::branch_prediction::AssociativeBTB"
-    cxx_header = "cpu/pred/associative_btb.hh"
-
-    numEntries = Param.MemorySize("4096", "Number of entries of BTB entries")
-    assoc = Param.Unsigned(8, "Associativity of the BTB")
-    indexing_policy = Param.BaseIndexingPolicy(
-        SetAssociative(
-            entry_size=1, assoc=Parent.assoc, size=Parent.numEntries
-        ),
-        "Indexing policy of the BTB",
-    )
-    replacement_policy = Param.BaseReplacementPolicy(
-        LRURP(), "Replacement policy of the table"
-    )
-
-    tagBits = Param.Unsigned(16, "Size of the BTB tags, in bits")
-    useTagCompression = Param.Bool(
-        False,
-        "Use a tag compression function as"
-        "described in https://ieeexplore.ieee.org/document/9528930",
-    )
-    instShiftAmt = Param.Unsigned(
-        Parent.instShiftAmt, "Number of bits to shift instructions by"
-    )
-
-
 class IndirectPredictor(SimObject):
     type = "IndirectPredictor"
     cxx_class = "gem5::branch_prediction::IndirectPredictor"
@@ -139,12 +102,6 @@ class IndirectPredictor(SimObject):
     abstract = True
 
     numThreads = Param.Unsigned(Parent.numThreads, "Number of threads")
-    takenOnlyHistory = Param.Bool(
-        Parent.takenOnlyHistory,
-        "Build the global "
-        "history using taken-only branch target history instead of direction "
-        "history from all branches",
-    )
 
 
 class SimpleIndirectPredictor(IndirectPredictor):
@@ -161,10 +118,11 @@ class SimpleIndirectPredictor(IndirectPredictor):
         3, "Previous indirect targets to use for path history"
     )
     speculativePathLength = Param.Unsigned(
-        3,
+        256,
         "Additional buffer space to store speculative path history. "
         "If there are more speculative branches in flight the history cannot "
-        "be recoverd.",
+        "be recovered. Set this to an appropriate value respective the CPU"
+        "pipeline depth or a high value e.g. 256 to make it 'unlimited'.",
     )
     indirectGHRBits = Param.Unsigned(13, "Indirect GHR number of bits")
     instShiftAmt = Param.Unsigned(2, "Number of bits to shift instructions by")
@@ -178,22 +136,18 @@ class BranchPredictor(SimObject):
 
     numThreads = Param.Unsigned(Parent.numThreads, "Number of threads")
     instShiftAmt = Param.Unsigned(2, "Number of bits to shift instructions by")
-    onlyTaken_set = Param.Bool(
-        False, "Use a set to recognize if a branch is never-taken-before"
-    )
-    onlyTaken_BTB = Param.Bool(
-        False, "Use BTB to roughly recognize if a branch is never-taken-before"
-    )
     requiresBTBHit = Param.Bool(
         False,
-        "Requires a BTB hit to detect if "
-        " a branch was a return or indirect branch.",
+        "Requires the BTB to hit for returns and indirect branches. For an"
+        "advanced front-end there is no other way than a BTB hit to know "
+        "that the branch exists in the first place. Furthermore, the BPU "
+        "needs to know the branch type to make the correct RAS operations. "
+        "This info is only available from the BTB. "
+        "Low-end CPUs predecoding might be used to identify branches. ",
     )
 
-    RASSize = Param.Unsigned(16, "RAS size")
-
-    BTB = Param.BranchTargetBuffer(SimpleBTB(), "Branch target buffer (BTB)")
-    RAS = Param.ReturnAddrStack(
+    btb = Param.BranchTargetBuffer(SimpleBTB(), "Branch target buffer (BTB)")
+    ras = Param.ReturnAddrStack(
         ReturnAddrStack(), "Return address stack, set to NULL to disable RAS."
     )
     indirectBranchPred = Param.IndirectPredictor(
