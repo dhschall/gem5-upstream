@@ -597,74 +597,76 @@ TAGEBase::handleTAGEUpdate(Addr branch_pc, bool taken, BranchInfo* bi)
 }
 
 void
-TAGEBase::updateHistories(ThreadID tid, Addr branch_pc, bool speculative,
-                          bool taken, Addr target, BranchInfo* bi,
-                          const StaticInstPtr & inst)
+TAGEBase::updatePathAndGlobalHistory(ThreadID tid, int brType,
+                          bool taken, Addr branch_pc, Addr target, BranchInfo* bi)
 {
-    if (speculative != speculativeHistUpdate) {
-        return;
-    }
-
-    // If this is the first time we see this branch record the current
-    // state of the history to be able to recover.
-    if (speculativeHistUpdate && (bi->nGhist == 0)) {
-        recordHistState(tid, bi);
-    }
-
-    // In case the branch already updated the history
-    // we need to revert the previous update first.
-    if (bi->nGhist > 0) {
-        restoreHistState(tid, bi);
-    }
-
-    // Recalculate the tags and indices if needed. This can be the case
-    // as in the decoupled frontend branches can be inserted out of order
-    // (surprise branches). We can not compute the tags and indices
-    // at that point since the BPU might already speculated on other branches
-    // which updated the history. We can recalulate the tags and indices
-    // now since either the branch was correctly not taken and the history
-    // will not be updated or the branch was incorrect in which case the
-    // branches afterwards where squashed and the history was restored.
-    if (!bi->valid && bi->condBranch) {
-        tagePredict(tid, branch_pc, true, bi);
-        //calculateIndicesAndTags(tid, branch_pc, bi);
-    }
-
     ThreadHistory& tHist = threadHistory[tid];
-
     // Update path history
     bool pathbit = ((branch_pc >> instShiftAmt) & 1);
     tHist.pathHist = (tHist.pathHist << 1) + pathbit;
     tHist.pathHist = (tHist.pathHist & ((1ULL << pathHistBits) - 1));
 
-
-    // Update global history
-    // We should have not already modified the history
-    // for this branch
-    assert(bi->nGhist == 0);
-
     if (takenOnlyHistory) {
-        // For taken history we shift two bits into the global
-        // history in case the branch was taken.
+        // Taken-only history is implemented after the paper:
+        // https://ieeexplore.ieee.org/document/9246215
+        //
+        // For taken-only history two bits of a hash of pc and its target
+        // is shifted into the global history in case the branch was taken.
         // For not-taken branches no history update will happen.
         if (taken) {
             bi->ghist = (((branch_pc >> instShiftAmt) >> 2)
                       ^  ((target >> instShiftAmt) >> 3)) & 0x3;
             bi->nGhist = 2;
-         }
-
+        }
     } else {
         // For normal direction history update the history by
         // whether the branch was taken or not.
         bi->ghist = taken ? 1 : 0;
         bi->nGhist = 1;
-        }
+    }
     // Update the global history
     updateGHist(tid, bi->ghist, bi->nGhist);
+}
 
+void
+TAGEBase::updateHistories(ThreadID tid, Addr branch_pc, bool speculative,
+                          bool taken, Addr target,
+                          const StaticInstPtr & inst, BranchInfo* bi)
+{
+    if (speculative != speculativeHistUpdate) {
+        return;
+    }
+    // If this is the first time we see this branch record the current
+    // state of the history to be able to recover.
+    if (speculativeHistUpdate && (bi->nGhist == 0)) {
+        recordHistState(tid, bi);
+    }
+    // In case the branch already updated the history
+    // we need to revert the previous update first.
+    if (bi->nGhist > 0) {
+        restoreHistState(tid, bi);
+    }
+    // Recalculate the tags and indices if needed. This can be the case
+    // as in the decoupled frontend branches can be inserted out of order
+    // (surprise branches). We can not compute the tags and indices
+    // at that point since the BPU might already speculated on other branches
+    // which updated the history. We can recalculate the tags and indices
+    // now since either the branch was correctly not taken and the history
+    // will not be updated or the branch was incorrect in which case the
+    // branches afterwards where squashed and the history was restored.
+    if (!bi->valid && bi->condBranch) {
+        tagePredict(tid, branch_pc, true, bi);
+    }
+    // We should have not already modified the history
+    // for this branch
+    assert(bi->nGhist == 0);
+    // Do the actual history update. Might be different for different
+    // TAGE implementations.
+    updatePathAndGlobalHistory(tid, branchTypeExtra(inst), taken,
+                               branch_pc, target, bi);
     DPRINTF(Tage, "Updating global histories with branch:%lx; taken?:%d, "
-            "path Hist: %x; pointer:%d\n", branch_pc, taken, tHist.pathHist,
-            tHist.ptGhist);
+            "path Hist: %x; pointer:%d\n", branch_pc, taken,
+            threadHistory[tid].pathHist, threadHistory[tid].ptGhist);
     assert(threadHistory[tid].gHist ==
             &threadHistory[tid].globalHistory[threadHistory[tid].ptGhist]);
 }
@@ -681,7 +683,7 @@ TAGEBase::recordHistState(ThreadID tid, BranchInfo* bi)
         bi->ct0[i] = tHist.computeTags[0][i].comp;
         bi->ct1[i] = tHist.computeTags[1][i].comp;
     }
-    }
+}
 
 void
 TAGEBase::restoreHistState(ThreadID tid, BranchInfo* bi)
@@ -710,10 +712,10 @@ TAGEBase::restoreHistState(ThreadID tid, BranchInfo* bi)
 }
 
 void
-TAGEBase::squash(ThreadID tid, bool taken,
-                 TAGEBase::BranchInfo *bi, Addr target)
+TAGEBase::squash(ThreadID tid, bool taken, Addr target, const StaticInstPtr &inst,
+                 TAGEBase::BranchInfo *bi)
 {
-    updateHistories(tid, bi->branchPC, true, taken, target, bi);
+    updateHistories(tid, bi->branchPC, true, taken, target, inst, bi);
 }
 
 void
@@ -770,21 +772,6 @@ TAGEBase::updateStats(bool taken, BranchInfo* bi)
         stats.altMatchProvider[bi->altBank]++;
         break;
     }
-}
-
-unsigned
-TAGEBase::getGHR(ThreadID tid, BranchInfo *bi) const
-{
-    unsigned val = 0;
-    for (unsigned i = 0; i < 32; i++) {
-        // Make sure we don't go out of bounds
-        int gh_offset = bi->ptGhist + i;
-        assert(&(threadHistory[tid].globalHistory[gh_offset]) <
-               threadHistory[tid].globalHistory + histBufferSize);
-        val |= ((threadHistory[tid].globalHistory[gh_offset] & 0x1) << i);
-    }
-
-    return val;
 }
 
 unsigned

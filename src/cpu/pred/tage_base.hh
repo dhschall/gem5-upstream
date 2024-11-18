@@ -327,9 +327,8 @@ class TAGEBase : public SimObject
      * do different things depending on the branch type.
      */
     virtual void updateHistories(ThreadID tid, Addr branch_pc,
-                            bool speculative, bool taken, Addr target,
-                            BranchInfo* bi,
-                            const StaticInstPtr & inst = nullStaticInstPtr);
+                            bool speculative, bool taken, Addr target, const StaticInstPtr &inst,
+                            BranchInfo* bi);
 
     /**
      * Records the current state of the histories to be able to restore it
@@ -345,6 +344,21 @@ class TAGEBase : public SimObject
     */
     void restoreHistState(ThreadID tid, BranchInfo* bi);
 
+    /** Does the actual update of path and global history. Different TAGE
+     * implementations may override this function to do extra work.
+     * @param tid The thread ID to select the histories to update.
+     * @param brtype The branch type
+     * @param taken Actual branch outcome.
+     * @param branch_pc The unshifted branch PC.
+     * @param target The branch target
+     */
+    virtual void updatePathAndGlobalHistory(ThreadID tid, int brtype,
+                    bool taken, Addr branch_pc, Addr target, BranchInfo* bi);
+    /** This function acts as a hook for other TAGE implementations to
+     * adjust the branch type
+    */
+    virtual int branchTypeExtra(const StaticInstPtr & inst) { return 0; }
+
     /**
      * Restores speculatively updated path and direction histories.
      * Also recomputes compressed (folded) histories based on the
@@ -359,7 +373,7 @@ class TAGEBase : public SimObject
      * @post bi points to valid memory.
      */
     virtual void squash(
-        ThreadID tid, bool taken, BranchInfo *bi, Addr target);
+        ThreadID tid, bool taken, Addr target, const StaticInstPtr &inst, BranchInfo *bi);
 
     /**
      * Update TAGE for conditional branches.
@@ -460,7 +474,6 @@ class TAGEBase : public SimObject
         return false;
     }
 
-    unsigned getGHR(ThreadID tid, BranchInfo *bi) const;
     unsigned getGHR(ThreadID tid) const;
     int8_t getCtr(int hitBank, int hitBankIndex) const;
     unsigned getTageCtrBits() const;

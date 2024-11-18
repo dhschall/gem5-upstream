@@ -103,7 +103,7 @@ class TAGE: public BPredUnit
     bool lookup(ThreadID tid, Addr branch_addr, void* &bpHistory) override;
     bool lookupHint(ThreadID tid, Addr pc) override;
     void updateHistories(ThreadID tid, Addr pc, bool uncond, bool taken,
-                         Addr target,  void * &bpHistory) override;
+                         Addr target,  const StaticInstPtr &inst, void * &bpHistory) override;
     void update(ThreadID tid, Addr branch_addr, bool taken, void * &bpHistory,
                 bool squashed, const StaticInstPtr & inst,
                 Addr corrTarget) override;

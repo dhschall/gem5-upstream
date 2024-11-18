@@ -366,7 +366,7 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
      * we know the correct direction.
      **/
     updateHistories(tid, hist->pc, hist->uncond,
-                    hist->predTaken, hist->target->instAddr(),
+                    hist->predTaken, hist->target->instAddr(),hist->inst,
                     hist->bpHistory);
 
 

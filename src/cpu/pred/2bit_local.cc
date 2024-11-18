@@ -80,7 +80,7 @@ LocalBP::LocalBP(const LocalBPParams &params)
 
 void
 LocalBP::updateHistories(ThreadID tid, Addr pc, bool uncond,
-                         bool taken, Addr target, void * &bpHistory)
+                         bool taken, Addr target, const StaticInstPtr &inst, void * &bpHistory)
 {
 // Place holder for a function that is called to update predictor history
 }

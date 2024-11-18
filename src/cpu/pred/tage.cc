@@ -79,7 +79,7 @@ TAGE::update(ThreadID tid, Addr branch_pc, bool taken, void * &bpHistory,
     if (squashed) {
         // This restores the global history, then update it
         // and recomputes the folded histories.
-        tage->squash(tid, taken, tage_bi, corrTarget);
+        tage->squash(tid, taken, corrTarget, inst, tage_bi);
         return;
     }
 
@@ -94,7 +94,7 @@ TAGE::update(ThreadID tid, Addr branch_pc, bool taken, void * &bpHistory,
 
     // optional non speculative update of the histories
     tage->updateHistories(tid, branch_pc, false, taken,
-                          corrTarget, tage_bi, inst);
+                          corrTarget, inst, tage_bi);
     delete bi; bpHistory = nullptr;
 }
 
@@ -135,7 +135,7 @@ TAGE::lookup(ThreadID tid, Addr branch_pc, void* &bpHistory)
 
 void
 TAGE::updateHistories(ThreadID tid, Addr pc, bool uncond,
-                         bool taken, Addr target, void * &bpHistory)
+                         bool taken, Addr target, const StaticInstPtr &inst,  void * &bpHistory)
 {
     if (bpHistory == nullptr) {
 
@@ -147,7 +147,7 @@ TAGE::updateHistories(ThreadID tid, Addr pc, bool uncond,
 
     // Update the global history for all branches
     TageBranchInfo *bi = static_cast<TageBranchInfo*>(bpHistory);
-    tage->updateHistories(tid, pc, true, taken, target, bi->tageBranchInfo);
+    tage->updateHistories(tid, pc, true, taken, target, inst,  bi->tageBranchInfo);
 }
 
 void

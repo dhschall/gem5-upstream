@@ -75,7 +75,7 @@ class BiModeBP : public BPredUnit
     BiModeBP(const BiModeBPParams &params);
     bool lookup(ThreadID tid, Addr pc, void * &bpHistory) override;
     void updateHistories(ThreadID tid, Addr pc, bool uncond, bool taken,
-                         Addr target,  void * &bpHistory) override;
+                         Addr target, const StaticInstPtr &inst, void * &bpHistory) override;
     void squash(ThreadID tid, void * &bpHistory) override;
     void update(ThreadID tid, Addr pc, bool taken,
                 void * &bpHistory, bool squashed,

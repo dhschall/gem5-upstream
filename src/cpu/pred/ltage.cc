@@ -117,7 +117,7 @@ LTAGE::predict(ThreadID tid, Addr branch_pc, bool cond_branch, void* &b)
 // PREDICTOR UPDATE
 void
 LTAGE::update(ThreadID tid, Addr branch_pc, bool taken, void* &bpHistory,
-              bool squashed, const StaticInstPtr & inst, Addr corrTarget)
+              bool squashed, const StaticInstPtr & inst, Addr target)
 {
     assert(bpHistory);
 
@@ -127,7 +127,7 @@ LTAGE::update(ThreadID tid, Addr branch_pc, bool taken, void* &bpHistory,
         if (tage->isSpeculativeUpdateEnabled()) {
             // This restores the global history, then update it
             // and recomputes the folded histories.
-            tage->squash(tid, taken, bi->tageBranchInfo, corrTarget);
+            tage->squash(tid, taken, target, inst, bi->tageBranchInfo);
 
             if (bi->tageBranchInfo->condBranch) {
                 loopPredictor->squashLoop(bi->lpBranchInfo);
@@ -148,11 +148,11 @@ LTAGE::update(ThreadID tid, Addr branch_pc, bool taken, void* &bpHistory,
             bi->tageBranchInfo->tagePred, bi->lpBranchInfo, instShiftAmt);
 
         tage->condBranchUpdate(tid, branch_pc, taken, bi->tageBranchInfo,
-            nrand, corrTarget, bi->lpBranchInfo->predTaken);
+            nrand, target, bi->lpBranchInfo->predTaken);
     }
 
-    tage->updateHistories(tid, branch_pc, false, taken, corrTarget,
-                          bi->tageBranchInfo, inst);
+    tage->updateHistories(tid, branch_pc, false, taken, target,
+                          inst, bi->tageBranchInfo);
 
     delete bi; bpHistory = nullptr;
 }
@@ -169,7 +169,7 @@ LTAGE::updateTakenBefore(ThreadID tid, Addr branch_pc, bool taken, void* &bpHist
         if (tage->isSpeculativeUpdateEnabled()) {
             // This restores the global history, then update it
             // and recomputes the folded histories.
-            tage->squash(tid, taken, bi->tageBranchInfo, corrTarget);
+            tage->squash(tid, taken, corrTarget, inst,  bi->tageBranchInfo);
 
             if (bi->tageBranchInfo->condBranch) {
                 loopPredictor->squashLoop(bi->lpBranchInfo);
@@ -193,8 +193,8 @@ LTAGE::updateTakenBefore(ThreadID tid, Addr branch_pc, bool taken, void* &bpHist
             nrand, corrTarget, bi->lpBranchInfo->predTaken);
     }
 
-    tage->updateHistories(tid, branch_pc, false, taken, corrTarget,
-                          bi->tageBranchInfo, inst);
+    tage->updateHistories(tid, branch_pc, false, taken, corrTarget, inst,
+                          bi->tageBranchInfo);
 
     delete bi; bpHistory = nullptr;
 }

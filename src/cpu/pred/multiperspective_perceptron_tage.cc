@@ -202,8 +202,7 @@ MPP_TAGE::adjustAlloc(bool & alloc, bool taken, bool pred_taken)
 
 void
 MPP_TAGE::updateHistories(ThreadID tid, Addr branch_pc, bool speculative,
-                          bool taken, Addr target, TAGEBase::BranchInfo* bi,
-                          const StaticInstPtr & inst)
+                          bool taken, Addr target, const StaticInstPtr & inst, TAGEBase::BranchInfo* bi)
 {
     if (speculative != speculativeHistUpdate) {
         return;
@@ -215,13 +214,6 @@ MPP_TAGE::updateHistories(ThreadID tid, Addr branch_pc, bool speculative,
     if (! inst->isUncondCtrl()) {
         ++brtype;
     }
-    updatePathAndGlobalHistory(tid, brtype, taken, branch_pc, target);
-}
-
-void
-MPP_TAGE::updatePathAndGlobalHistory(
-    ThreadID tid, int brtype, bool taken, Addr branch_pc, Addr target)
-{
     // TAGE update
     int tmp = (branch_pc << 1) + taken;
     int path = branch_pc;
@@ -607,7 +599,7 @@ MultiperspectivePerceptronTAGE::update(ThreadID tid, Addr instPC, bool taken,
         if (tage->isSpeculativeUpdateEnabled()) {
             // This restores the global history, then update it
             // and recomputes the folded histories.
-            tage->squash(tid, taken, bi->tageBranchInfo, corrTarget);
+            tage->squash(tid, taken, corrTarget, inst, bi->tageBranchInfo);
             if (bi->tageBranchInfo->condBranch) {
                 loopPredictor->squashLoop(bi->lpBranchInfo);
             }
@@ -619,7 +611,7 @@ MultiperspectivePerceptronTAGE::update(ThreadID tid, Addr instPC, bool taken,
         statisticalCorrector->scHistoryUpdate(instPC, inst, taken,
                 bi->scBranchInfo, corrTarget);
         tage->updateHistories(tid, instPC, false, taken, corrTarget,
-                              bi->tageBranchInfo, inst);
+                              inst, bi->tageBranchInfo);
     } else {
         tage->updateStats(taken, bi->tageBranchInfo);
         loopPredictor->updateStats(taken, bi->lpBranchInfo);
@@ -668,7 +660,7 @@ MultiperspectivePerceptronTAGE::update(ThreadID tid, Addr instPC, bool taken,
                     bi->scBranchInfo, corrTarget);
 
             tage->updateHistories(tid, instPC, false, taken, corrTarget,
-                                  bi->tageBranchInfo, inst);
+                                  inst, bi->tageBranchInfo);
         }
     }
     delete bi; bpHistory = nullptr;
@@ -677,7 +669,7 @@ MultiperspectivePerceptronTAGE::update(ThreadID tid, Addr instPC, bool taken,
 void
 MultiperspectivePerceptronTAGE::updateHistories(ThreadID tid, Addr pc,
                                             bool uncond, bool taken,
-                                            Addr target, void * &bpHistory)
+                                            Addr target, const StaticInstPtr &inst, void * &bpHistory)
 {
     assert(uncond || bpHistory);
 

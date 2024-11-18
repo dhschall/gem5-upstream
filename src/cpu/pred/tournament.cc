@@ -196,7 +196,7 @@ TournamentBP::lookup(ThreadID tid, Addr branch_addr, void * &bpHistory)
 
 void
 TournamentBP::updateHistories(ThreadID tid, Addr pc, bool uncond,
-                         bool taken, Addr target, void * &bpHistory)
+                         bool taken, Addr target, const StaticInstPtr &inst, void * &bpHistory)
 {
     assert(uncond || bpHistory);
     if (uncond) {

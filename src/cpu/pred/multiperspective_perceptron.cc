@@ -562,7 +562,7 @@ MultiperspectivePerceptron::train(ThreadID tid, MPPBranchInfo &bi, bool taken)
 
 void
 MultiperspectivePerceptron::updateHistories(ThreadID tid, Addr pc,
-                    bool uncond, bool taken, Addr target, void * &bpHistory)
+                    bool uncond, bool taken, Addr target, const StaticInstPtr &inst, void * &bpHistory)
 {
     assert(uncond || bpHistory);
 

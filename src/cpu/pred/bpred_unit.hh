@@ -194,7 +194,7 @@ class BPredUnit : public SimObject
      * has the branch predictor state associated with the lookup.
      */
     virtual void updateHistories(ThreadID tid, Addr pc, bool uncond,
-                            bool taken, Addr target, void * &bpHistory) = 0;
+                            bool taken, Addr target, const StaticInstPtr &inst, void * &bpHistory) = 0;
 
     /**
      * @param bpHistory Pointer to the history object.  The predictor

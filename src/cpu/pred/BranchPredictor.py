@@ -74,7 +74,7 @@ class ReturnAddrStack(SimObject):
     cxx_header = "cpu/pred/ras.hh"
 
     numThreads = Param.Unsigned(Parent.numThreads, "Number of threads")
-    numEntries = Param.Unsigned(Parent.RASSize, "Number of RAS entries")
+    numEntries = Param.Unsigned(16, "Number of RAS entries")
     corruptionDetection = Param.Bool(
         False,
         "When corruption detection is "
@@ -161,7 +161,7 @@ class SimpleIndirectPredictor(IndirectPredictor):
         3, "Previous indirect targets to use for path history"
     )
     speculativePathLength = Param.Unsigned(
-        3,
+        256,
         "Additional buffer space to store speculative path history. "
         "If there are more speculative branches in flight the history cannot "
         "be recoverd.",

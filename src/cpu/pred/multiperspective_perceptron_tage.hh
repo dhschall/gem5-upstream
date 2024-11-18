@@ -96,8 +96,7 @@ class MPP_TAGE : public TAGEBase
     unsigned getUseAltIdx(TAGEBase::BranchInfo* bi, Addr branch_pc) override;
     void adjustAlloc(bool & alloc, bool taken, bool pred_taken) override;
     void updateHistories(ThreadID tid, Addr branch_pc, bool speculative,
-                         bool taken, Addr target, TAGEBase::BranchInfo* bi,
-                         const StaticInstPtr & inst) override;
+                         bool taken, Addr target,const StaticInstPtr & inst, TAGEBase::BranchInfo* bi) override;
 
     void updatePathAndGlobalHistory(ThreadID tid, int brtype,
                                     bool taken, Addr branch_pc, Addr target);
@@ -254,7 +253,7 @@ class MultiperspectivePerceptronTAGE : public MultiperspectivePerceptron
             const StaticInstPtr & inst,
             Addr corrTarget) override;
     void updateHistories(ThreadID tid, Addr pc, bool uncond, bool taken,
-                         Addr target,  void * &bpHistory) override;
+                         Addr target,  const StaticInstPtr &inst, void * &bpHistory) override;
     void squash(ThreadID tid, void * &bpHistory) override;
     void branchPlaceholder(ThreadID tid, Addr pc,
                                 bool uncond, void * &bpHistory) override
