@@ -369,7 +369,12 @@ class LoopPredictor(SimObject):
         True, "Reset age bits optionally in some cases"
     )
 
-
+#code from the gem5 discussion
+class TAGE_SCL(BranchPredictor):
+    type = "TAGE_SCL"
+    cxx_class = "gem5::branch_prediction::TAGE_SCL"
+    cxx_header = "cpu/pred/tage_scl.hh"
+    
 class TAGE_SC_L_TAGE(TAGEBase):
     type = "TAGE_SC_L_TAGE"
     cxx_class = "gem5::branch_prediction::TAGE_SC_L_TAGE"

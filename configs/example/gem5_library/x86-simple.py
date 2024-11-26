@@ -63,7 +63,10 @@ requires(isa_required=ISA.X86)
 
 from m5.objects import (
     AssociativeBTB,
+    TAGEBase,
     LTAGE,
+    TAGE_SC_L_64KB,
+    TAGE_SCL,
     LocalBP,
     TaggedPrefetcher,
     SimpleIndirectPredictor,
@@ -117,6 +120,18 @@ def parse_arguments():
         help="Enhance FDP with Post Fetch Correction. Only can it work when fdp is enabled.",
     )
 
+    parser.add_argument(
+        "--onlyTaken_set",
+        action="store_true",
+        help="use a set to precisely record taken-before branches.",
+    )
+
+    parser.add_argument(
+        "--onlyTaken_BTB",
+        action="store_true",
+        help="roughly record taken-before branches with BTB.",
+    )
+
     return parser.parse_args()
 
 
@@ -141,7 +156,7 @@ cfgs = {
 
 ## FDP needs the AssociativeBTB.
 class BTB(AssociativeBTB):
-    #numEntries = "8kB"
+    #numEntries = "4kB"
     numEntries = "32kB"
     assoc = 4
 
@@ -153,11 +168,40 @@ class IndirectPred(SimpleIndirectPredictor):
     speculativePathLength = 20
     instShiftAmt = 0
 
+class TAGE_64KB(TAGEBase):
+    # From https://jilp.org/jwac-2/program/cbp3_03_seznec.pdf
+    nHistoryTables = 15
+    minHist = 8
+    maxHist = 2000
+
+    tagTableUBits = 1
+    tagTableTagWidths = [0,  8,  8, 11, 11, 11, 11, 11, 13, 13, 13, 13, 13, 13, 14, 14]
+    logTagTableSizes = [15, 12, 12, 14, 14, 14, 14, 14, 13, 13, 13, 13, 13, 13, 10, 10]
+
+    numUseAltOnNa=16
+
+    logUResetPeriod=10
+    maxNumAlloc=2
+    pathHistBits=27
+    speculativeHistUpdate=True
+
+    tagTableCounterBits=3
+    tagTableUBits=1
+    useAltOnNaBits=5
+
 class BPLTage(LTAGE):
     instShiftAmt = 0
     indirectBranchPred = IndirectPred()
     BTB = BTB()
+    tage = TAGE_64KB()
     requiresBTBHit = True
+
+class BPTage_sc_l(TAGE_SCL):
+    instShiftAmt = 0
+    BTB = BTB()
+    indirectBranchPred = IndirectPred()
+    requiresBTBHit = True
+
 
 class CacheHierarchy(PrivateL1PrivateL2CacheHierarchy):
     def __init__(self, l1i_size, l1d_size, l2_size):
@@ -239,9 +283,9 @@ memory = DualChannelDDR4_2400(size="2GB")
 
 # Here we setup the processor. For booting we take the KVM core and
 # for the evaluation we can take ATOMIC, TIMING or O3
-# eval_core = CPUTypes.ATOMIC
+eval_core = CPUTypes.ATOMIC
 #eval_core = CPUTypes.TIMING
-eval_core = CPUTypes.O3
+#eval_core = CPUTypes.O3
 
 processor = SimpleProcessor(
     cpu_type=CPUTypes.KVM if args.mode=="setup" else eval_core,
@@ -251,18 +295,31 @@ processor = SimpleProcessor(
 
 if args.mode != "setup":
     cpu1 = processor.cores[1].core
-    cpu1.fetchBufferSize = 16
-    cpu1.fetchTargetWidth = 32
-    cpu1.branchPred = BPLTage(
+    #cpu1.fetchBufferSize = 16
+    #cpu1.fetchTargetWidth = 32
+
+    #cpu1.branchPred = BPLTage(
+    #    takenOnlyHistory = True,
+    #    requiresBTBHit = True,
+    #)
+    cpu1.branchPred = BPTage_sc_l(
         takenOnlyHistory = True,
-        requiresBTBHit = False,
+        requiresBTBHit = True,
     )
-    if args.disable_fdp:
-        cpu1.decoupledFrontEnd = False
-    else:
-        cpu1.decoupledFrontEnd = True
-        if args.pfc:
-            cpu1.pfc = True
+    #if args.disable_fdp:
+    #    cpu1.decoupledFrontEnd = False
+    #    #remember to change, this is used just for the latest experiments
+    #    #cpu1.branchPred.tage.speculativeHistUpdate = True
+    #else:
+    #    cpu1.decoupledFrontEnd = True
+    #    if args.pfc:
+    #        cpu1.pfc = True
+
+    if args.onlyTaken_set:
+        cpu1.branchPred.onlyTaken_set = True
+    elif args.onlyTaken_BTB:
+        cpu1.branchPred.onlyTaken_BTB = True
+
 
 
 
