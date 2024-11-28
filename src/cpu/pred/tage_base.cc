@@ -116,7 +116,7 @@ TAGEBase::init()
     assert(logUResetPeriod != 0);
     tCounter = initialTCounterValue;
 
-    assert(histBufferSize > maxHist * 2);
+    assert(histBufferSize > maxHist * 3);
 
     useAltPredForNewlyAllocated.resize(numUseAltOnNa, 0);
 
@@ -326,7 +326,7 @@ TAGEBase::updateGHist(ThreadID tid, uint64_t bv, uint8_t n)
          // through pt[0 .. maxHist - 1].
          for (int i = 0; i < maxHist; i++)
             tHist.globalHistory[histBufferSize - maxHist + i]
-                = tHist.globalHistory[i];
+                = tHist.globalHistory[tHist.ptGhist + i];
 
         tHist.ptGhist = histBufferSize - maxHist;
         tHist.gHist = &tHist.globalHistory[tHist.ptGhist];
