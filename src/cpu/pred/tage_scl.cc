@@ -13,7 +13,7 @@ namespace gem5
 namespace branch_prediction
 {
 
-TAGE_SCL::TAGE_SCL(const TAGE_SCLParams &params) : BPredUnit(params), tage(1024)
+TAGE_SCL::TAGE_SCL(const TAGE_SCLParams &params) : BPredUnit(params), tage(1024, params.takenOnlyHistory)
 {
 }
 

@@ -73,8 +73,8 @@ class Tage_SC_L_Base {
 template <class CONFIG>
 class Tage_SC_L : public Tage_SC_L_Base {
  public:
-  Tage_SC_L(int max_in_flight_branches)
-      : tage_(random_number_gen_, max_in_flight_branches),
+  Tage_SC_L(int max_in_flight_branches, bool takenOnlyHist)
+      : tage_(random_number_gen_, max_in_flight_branches, takenOnlyHist),
         statistical_corrector_(),
         loop_predictor_(random_number_gen_),
         loop_predictor_beneficial_(-1),

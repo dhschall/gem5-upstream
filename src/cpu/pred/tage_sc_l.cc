@@ -276,10 +276,19 @@ TAGE_SC_L_TAGE::updatePathAndGlobalHistory(ThreadID tid, int brtype,
         }
     }
     // Record the update to be able to squash it later
-    bi->ghist = tmp;
-    bi->nGhist = maxt;
+    if(takenOnlyHistory){
+        if (taken) {
+            bi->ghist = (((branch_pc >> instShiftAmt) >> 2)
+                      ^  ((target >> instShiftAmt) >> 3)) & 0x3;
+            bi->nGhist = 2;
+         }
+    }else{
+        bi->ghist = tmp;
+        bi->nGhist = maxt;
+    }
 
-    updateGHist(tid, tmp, maxt);
+    //updateGHist(tid, tmp, maxt);
+    updateGHist(tid, bi->ghist, bi->nGhist);
 }
 
 

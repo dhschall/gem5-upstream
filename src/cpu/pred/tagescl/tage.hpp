@@ -61,6 +61,21 @@ class Long_History_Register {
     assert(num_speculative_bits_ <= max_num_speculative_bits_);
   }
 
+  void update_takenOnlyHist(uint64_t target_hash){
+      //target_history <<= 2
+      head_ -= 2;
+      num_speculative_bits_ += 2;
+      assert(num_speculative_bits_ <= max_num_speculative_bits_);
+
+      // target_history ^ target_hash
+      for(int64_t i = 0; i < 64; ++i){
+          uint64_t lsb_targetHash = (target_hash >> i) & 0x1;
+          uint64_t lsb_targetHist = history_bits_[(head_+i) & buffer_access_mask_] ? 1 : 0; 
+          uint64_t bit_xor = (lsb_targetHash ^ lsb_targetHist) & 0x1;
+          history_bits_[(head_+i) & buffer_access_mask_] = (bit_xor) == 1 ? true : false;
+      }
+  }
+
   // Rewinds num_rewind_bits branches out of the history.
   void rewind(int num_rewind_bits) {
     assert(num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_);
@@ -240,8 +255,8 @@ struct Tage_Prediction_Info {
 template <class TAGE_CONFIG>
 class Tage_Histories {
  public:
-  Tage_Histories(int max_in_flight_branches)
-      : history_register_(3 * max_in_flight_branches) {
+  Tage_Histories(int max_in_flight_branches, bool takenOnlyHist_)
+      : history_register_(3 * max_in_flight_branches), takenOnlyHist(takenOnlyHist_) {
     path_history_ = 0;
     intialize_folded_history();
   }
@@ -254,6 +269,7 @@ class Tage_Histories {
       num_bit_inserts = 3;
     }
 
+
     int pc_dir_hash = ((br_pc ^ (br_pc >> 2))) ^ branch_dir;
     int path_hash = br_pc ^ (br_pc >> 2) ^ (br_pc >> 4);
     if ((br_type.is_indirect && br_type.is_conditional) & branch_dir) {
@@ -261,23 +277,43 @@ class Tage_Histories {
       path_hash = path_hash ^ (br_target >> 2) ^ (br_target >> 4);
     }
 
-    prediction_info->num_global_history_bits = num_bit_inserts;
+    int num_bit_inserts_path = num_bit_inserts;
+    int num_bit_inserts_hist = num_bit_inserts;
+
+    prediction_info->num_global_history_bits = num_bit_inserts_hist;
     prediction_info->path_history_checkpoint = path_history_;
     prediction_info->global_history_head_checkpoint_ =
         history_register_.head_idx();
 
-    for (int i = 0; i < num_bit_inserts; ++i) {
-      history_register_.push_bit(pc_dir_hash & 1);
-      pc_dir_hash >>= 1;
+    if(takenOnlyHist){
+        if(branch_dir){
+            num_bit_inserts_hist = 2;
+            uint64_t target_hash = ((br_pc >> 2) ^ (br_target >> 3)); 
+            //( target_history << 2 ) ^ target_hash
+            history_register_.update_takenOnlyHist(target_hash); 
+            //todo: how to update folded_histories since now the GHR is updated by update_takenOnlyHist in which there is a XOR operation to update GHR?
 
+        }
+        num_bit_inserts_hist = 0;
+    }
+
+    //if num_bit_inserts_hist > 0, means takenOnlyHist is disabled
+    //history_register is updated by push_bit(pc_dir_hash & 1);
+    //otherwise, it was updated by update_takenOnlyHist above.
+    for (int i = 0; i < num_bit_inserts_hist; ++i) {
+        history_register_.push_bit(pc_dir_hash & 1);
+        pc_dir_hash >>= 1;
+
+        for (int j = 0; j < TAGE_CONFIG::NUM_HISTORIES; ++j) {
+          folded_histories_for_indices_[j].update(history_register_);
+          folded_histories_for_tags_0_[j].update(history_register_);
+          folded_histories_for_tags_1_[j].update(history_register_);
+        }
+    }
+    // update policy of path_history is not influenced by takenOnlyHisto
+    for (int i = 0; i < num_bit_inserts_path; ++i) {
       path_history_ = (path_history_ << 1) ^ (path_hash & 127);
       path_hash >>= 1;
-
-      for (int j = 0; j < TAGE_CONFIG::NUM_HISTORIES; ++j) {
-        folded_histories_for_indices_[j].update(history_register_);
-        folded_histories_for_tags_0_[j].update(history_register_);
-        folded_histories_for_tags_1_[j].update(history_register_);
-      }
     }
 
     path_history_ =
@@ -298,6 +334,7 @@ class Tage_Histories {
 
   // Predictor State
   Long_History_Register<TAGE_CONFIG::MAX_HISTORY_SIZE> history_register_;
+  const bool takenOnlyHist;
   std::vector<Folded_History<TAGE_CONFIG::MAX_HISTORY_SIZE>>
       folded_histories_for_indices_;
   std::vector<Folded_History<TAGE_CONFIG::MAX_HISTORY_SIZE>>
@@ -312,9 +349,9 @@ class Tage_Histories {
 template <class TAGE_CONFIG>
 class Tage {
  public:
-  Tage(Random_Number_Generator& random_number_gen, int max_in_flight_branches)
+  Tage(Random_Number_Generator& random_number_gen, int max_in_flight_branches, bool takenOnlyHist)
       : tagged_table_ptrs_(),
-        tage_histories_(max_in_flight_branches),
+        tage_histories_(max_in_flight_branches, takenOnlyHist),
         low_history_tagged_table_(),
         high_history_tagged_table_(),
         alt_selector_table_(),
