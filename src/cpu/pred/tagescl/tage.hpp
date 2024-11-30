@@ -39,7 +39,7 @@ class Long_History_Register {
  public:
   // Buffer_size needs to be a power of 2. (buffer_size - history_size) should
   // be large enough to cover speculative branches that are not yet retired.
-  Long_History_Register(int max_in_flight_bits) : history_bits_() {
+  Long_History_Register(int max_in_flight_bits, bool takenOnlyHist) : history_bits_(), takenOnlyHist(takenOnlyHist) {
     int log_buffer_size =
         get_min_num_bits_to_represent(history_size + max_in_flight_bits);
     buffer_size_ = 1 << log_buffer_size;
@@ -61,31 +61,31 @@ class Long_History_Register {
     assert(num_speculative_bits_ <= max_num_speculative_bits_);
   }
 
-  void update_takenOnlyHist(uint64_t target_hash){
-      //target_history <<= 2
-      head_ -= 2;
-      num_speculative_bits_ += 2;
-      assert(num_speculative_bits_ <= max_num_speculative_bits_);
-
-      // target_history ^ target_hash
-      for(int64_t i = 0; i < 64; ++i){
-          uint64_t lsb_targetHash = (target_hash >> i) & 0x1;
-          uint64_t lsb_targetHist = history_bits_[(head_+i) & buffer_access_mask_] ? 1 : 0; 
-          uint64_t bit_xor = (lsb_targetHash ^ lsb_targetHist) & 0x1;
-          history_bits_[(head_+i) & buffer_access_mask_] = (bit_xor) == 1 ? true : false;
-      }
-  }
+//  void update_takenOnlyHist(uint64_t target_hash){
+//      //target_history <<= 2
+//      head_ -= 2;
+//      num_speculative_bits_ += 2;
+//      assert(num_speculative_bits_ <= max_num_speculative_bits_);
+//
+//      // target_history ^ target_hash
+//      for(int64_t i = 0; i < 64; ++i){
+//          uint64_t lsb_targetHash = (target_hash >> i) & 0x1;
+//          uint64_t lsb_targetHist = history_bits_[(head_+i) & buffer_access_mask_] ? 1 : 0; 
+//          uint64_t bit_xor = (lsb_targetHash ^ lsb_targetHist) & 0x1;
+//          history_bits_[(head_+i) & buffer_access_mask_] = (bit_xor) == 1 ? true : false;
+//      }
+//  }
 
   // Rewinds num_rewind_bits branches out of the history.
   void rewind(int num_rewind_bits) {
-    assert(num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_);
+    assert(takenOnlyHist || (num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_));
     num_speculative_bits_ -= num_rewind_bits;
     head_ += num_rewind_bits;
   }
 
   // Retire speculative bits.
   void retire(int num_retire_bits) {
-    assert(num_retire_bits > 0 && num_retire_bits <= num_speculative_bits_);
+    assert(takenOnlyHist || (num_retire_bits > 0 && num_retire_bits <= num_speculative_bits_));
     num_speculative_bits_ -= num_retire_bits;
     commit_head_ += num_retire_bits;
   }
@@ -104,6 +104,7 @@ class Long_History_Register {
                                   // discarded during a rewind without losing
                                   // bits in the most significant position.
   std::vector<bool> history_bits_;
+  const bool takenOnlyHist;
   int64_t head_ = 0;
   int64_t commit_head_ = 0;
   int64_t buffer_size_;
@@ -256,7 +257,7 @@ template <class TAGE_CONFIG>
 class Tage_Histories {
  public:
   Tage_Histories(int max_in_flight_branches, bool takenOnlyHist_)
-      : history_register_(3 * max_in_flight_branches), takenOnlyHist(takenOnlyHist_) {
+      : history_register_(3 * max_in_flight_branches, takenOnlyHist_), takenOnlyHist(takenOnlyHist_) {
     path_history_ = 0;
     intialize_folded_history();
   }
@@ -288,13 +289,10 @@ class Tage_Histories {
     if(takenOnlyHist){
         if(branch_dir){
             num_bit_inserts_hist = 2;
-            uint64_t target_hash = ((br_pc >> 2) ^ (br_target >> 3)); 
-            //( target_history << 2 ) ^ target_hash
-            history_register_.update_takenOnlyHist(target_hash); 
-            //todo: how to update folded_histories since now the GHR is updated by update_takenOnlyHist in which there is a XOR operation to update GHR?
-
+            pc_dir_hash = ((br_pc >> 2) ^ (br_target >> 3)); 
+        }else{
+            num_bit_inserts_hist = 0;
         }
-        num_bit_inserts_hist = 0;
     }
 
     //if num_bit_inserts_hist > 0, means takenOnlyHist is disabled
