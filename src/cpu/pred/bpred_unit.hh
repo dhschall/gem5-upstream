@@ -362,7 +362,12 @@ class BPredUnit : public SimObject
      */
     void commitBranch(ThreadID tid, PredictorHistory* &bpu_history);
 
-
+    /**
+     * Update the BTB with the correct target of a branch.
+     * @param tid The thread id.
+     * @param bpu_history The history of the branch to be updated.
+     */
+    void updateBTB(ThreadID tid, PredictorHistory* &bpu_history);
 
   protected:
     /** Number of the threads for which the branch history is maintained. */
@@ -375,6 +380,12 @@ class BPredUnit : public SimObject
      * This info is only available from the BTB.
      * Low-end CPUs predecoding might be used to identify branches. */
     const bool requiresBTBHit;
+
+    /** Update the BTB at squash time instead of commit. This can be useful
+     * to update the BTB earlier to avoid BTB misses on subsequent branches.
+     * However, it can also lead to BTB pollution if the branch is on the
+     * false path and will be squashed later. The default should be false. */
+    const bool updateBTBAtSquash;
 
     /** Number of bits to shift instructions by for predictor addresses. */
     const unsigned instShiftAmt;
@@ -417,8 +428,6 @@ class BPredUnit : public SimObject
         statistics::Scalar condPredictedTaken;
         statistics::Scalar condIncorrect;
         statistics::Scalar predTakenBTBMiss;
-        statistics::Scalar NotTakenMispredicted;
-        statistics::Scalar TakenMispredicted;
 
         /** BTB stats. */
         statistics::Scalar BTBLookups;

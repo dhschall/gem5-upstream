@@ -59,6 +59,7 @@ BPredUnit::BPredUnit(const Params &params)
     : SimObject(params),
       numThreads(params.numThreads),
       requiresBTBHit(params.requiresBTBHit),
+      updateBTBAtSquash(params.updateBTBAtSquash),
       instShiftAmt(params.instShiftAmt),
       predHist(numThreads),
       btb(params.btb),
@@ -358,6 +359,15 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
     stats.committed[tid][hist->type]++;
     if (hist->mispredict) {
         stats.mispredicted[tid][hist->type]++;
+        ppMisses->notify(1);
+    }
+
+    // Separate stats for conditional branches which not includes BTB misses.
+    // `condPred` is set correctly even on a BTB misses
+    // (not the case for decoupled front-end).
+    if ((hist->type == BranchType::DirectCond) &&
+        (hist->condPred != hist->actuallyTaken)) {
+        stats.condIncorrect++;
     }
 
 
@@ -384,6 +394,17 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
         ras->commit(tid, hist->mispredict,
                          hist->type,
                          hist->rasHistory);
+    }
+
+    // Correct BTB (at commit) -------------------------------------
+    // Update the BTB for all mispredicted taken branches.
+    // Always if `requiresBTBHit` is true otherwise only if the
+    // branch was direct or no indirect predictor is available.
+    if (hist->actuallyTaken && !updateBTBAtSquash &&
+        (requiresBTBHit || hist->inst->isDirectCtrl() ||
+        (!iPred && !hist->inst->isReturn()))) {
+
+        updateBTB(tid, hist);
     }
 }
 
@@ -463,10 +484,6 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
 
     History &pred_hist = predHist[tid];
 
-    ++stats.condIncorrect;
-    ppMisses->notify(1);
-
-
     DPRINTF(Branch, "[tid:%i] Squash from %s start from sequence number %i, "
             "setting target to %s\n", tid, from_commit ? "commit" : "decode",
             squashed_sn, corr_target);
@@ -482,7 +499,7 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
     // fix up the entry.
     if (!pred_hist.empty()) {
 
-        PredictorHistory* const hist = pred_hist.front();
+        PredictorHistory* hist = pred_hist.front();
 
         DPRINTF(Branch, "[tid:%i] [squash sn:%llu] Mispredicted: %s, PC:%#x\n",
                     tid, squashed_sn, toString(hist->type), hist->pc);
@@ -499,12 +516,6 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
         // committed as a preceeding branch was mispredicted
         if (!from_commit) {
             stats.earlyResteers[tid][hist->type]++;
-        }
-
-        if (actually_taken) {
-            ++stats.NotTakenMispredicted;
-        } else {
-           ++stats.TakenMispredicted;
         }
 
 
@@ -572,36 +583,38 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
             }
         }
 
-        // Correct BTB ---------------------------------------------------
+        // Correct BTB (at squash) -------------------------------------
         // Update the BTB for all mispredicted taken branches.
         // Always if `requiresBTBHit` is true otherwise only if the
         // branch was direct or no indirect predictor is available.
-        if (actually_taken &&
+        if (actually_taken && updateBTBAtSquash &&
             (requiresBTBHit || hist->inst->isDirectCtrl() ||
             (!iPred && !hist->inst->isReturn()))) {
 
-            if (!hist->btbHit) {
-                ++stats.BTBMispredicted;
-                if (hist->condPred)
-                    ++stats.predTakenBTBMiss;
-            }
-
-            DPRINTF(Branch,"[tid:%i] BTB Update called for [sn:%llu] "
-                        "PC %#x -> T: %#x\n", tid,
-                        hist->seqNum, hist->pc, hist->target->instAddr());
-
-            stats.BTBUpdates++;
-            btb->update(tid, hist->pc,
-                            *hist->target,
-                            hist->type,
-                            hist->inst);
-            btb->incorrectTarget(hist->pc, hist->type);
+            updateBTB(tid, hist);
         }
 
     } else {
         DPRINTF(Branch, "[tid:%i] [sn:%llu] pred_hist empty, can't "
                 "update\n", tid, squashed_sn);
     }
+}
+
+void
+BPredUnit::updateBTB(ThreadID tid, PredictorHistory* &hist)
+{
+    DPRINTF(Branch,"[tid:%i] BTB Update for [sn:%llu] PC %#x -> T:%#x\n", tid,
+                    hist->seqNum, hist->pc, hist->target->instAddr());
+
+    if (!hist->btbHit) {
+        ++stats.BTBMispredicted;
+        if (hist->condPred)
+            ++stats.predTakenBTBMiss;
+    }
+
+    stats.BTBUpdates++;
+    btb->update(tid, hist->pc, *hist->target, hist->type, hist->inst);
+    btb->incorrectTarget(hist->pc, hist->type);
 }
 
 
@@ -662,11 +675,6 @@ BPredUnit::BPredUnitStats::BPredUnitStats(BPredUnit *bp)
                "Number of conditional branches incorrect"),
       ADD_STAT(predTakenBTBMiss, statistics::units::Count::get(),
                "Number of branches predicted taken but missed in BTB"),
-      ADD_STAT(NotTakenMispredicted, statistics::units::Count::get(),
-               "Number branches predicted 'not taken' but turned out "
-               "to be taken"),
-      ADD_STAT(TakenMispredicted, statistics::units::Count::get(),
-               "Number branches predicted taken but are actually not taken"),
       ADD_STAT(BTBLookups, statistics::units::Count::get(),
                "Number of BTB lookups"),
       ADD_STAT(BTBUpdates, statistics::units::Count::get(),
