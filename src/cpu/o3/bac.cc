@@ -699,13 +699,6 @@ BAC::generateFetchTargets(ThreadID tid, bool &status_change)
         // Now make the actual prediction. Note the BPU will advance
         // the PC to the next instruction.
         predict_taken = predict(tid, staticInst, curFT, *next_pc);
-        if(cur_pc.instAddr() > 0x400778 && cur_pc.instAddr() < 0x40c768){
-            DPRINTF(PFC, "Predict banch at PC: %#x "
-                    "taken?:%i disass:%s\n",
-                    cur_pc.instAddr(),
-                    predict_taken, staticInst->disassemble(cur_pc.instAddr()));
-        }
-
 
 
 

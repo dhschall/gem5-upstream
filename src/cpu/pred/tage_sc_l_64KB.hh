@@ -136,6 +136,7 @@ class TAGE_SC_L_64KB : public TAGE_SC_L
 {
   public:
     TAGE_SC_L_64KB(const TAGE_SC_L_64KBParams &params);
+
 };
 
 } // namespace branch_prediction

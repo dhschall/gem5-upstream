@@ -175,7 +175,10 @@ class TAGE_SC_L: public LTAGE
 
     void branchPlaceholder(ThreadID tid, Addr pc,
                                 bool uncond, void * &bpHistory) override
-    { panic("Not implemented for this BP!\n"); }
+    {
+        TageSCLBranchInfo *bi = new TageSCLBranchInfo(*tage, *statisticalCorrector, *loopPredictor, pc, !uncond);
+        bpHistory = (void*)(bi);
+    }
 
   protected:
 

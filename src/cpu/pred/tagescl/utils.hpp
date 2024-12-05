@@ -160,6 +160,10 @@ class Circular_Buffer {
     assert(back_ - id < back_ - front_);
     return buffer_[id & buffer_access_mask_];
   }
+ 
+  //bool already_squash(uint32_t id){
+  //    return back_ - id >= back_ - front_;
+  //}
 
   uint32_t back_id() const { return back_; }
 
@@ -167,18 +171,24 @@ class Circular_Buffer {
     assert(back_ - id < back_ - front_);
     size_ -= (back_ - id);
     back_ = id;
+    std::cout << "deallocate_after back_ = id : " << id << std::endl;
   }
 
   void deallocate_and_after(uint32_t id) {
     assert((back_ - id + 1) < (back_ - front_ + 1));
     size_ -= (back_ - id + 1);
     back_ = id - 1;
+    if(id == 19){
+        std::cout << "19id" << std::endl;
+    }
+    std::cout << "deallocate_and_after id  = " << id << " back_= " << back_ << std::endl;
   }
 
   uint32_t allocate_back() {
     assert(size_ < buffer_.size());
     back_ += 1;
     size_ += 1;
+    std::cout << "allocate_back back_ : " << back_ << std::endl;
     return back_;
   }
 
@@ -186,6 +196,7 @@ class Circular_Buffer {
     front_ += 1;
     assert(pop_id == front_);
     assert(size_ > 0);
+    std::cout << "deallocate_front: front_: " << front_ << std::endl;
     size_ -= 1;
   }
 

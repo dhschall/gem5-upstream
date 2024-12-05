@@ -45,6 +45,7 @@ class TAGE_SCL: public BPredUnit
                 void * &bp_history, bool squashed,
                 const StaticInstPtr & inst, Addr target) override;
     virtual void squash(ThreadID tid, void * &bp_history) override;
+    void branchPlaceholder(ThreadID tid, Addr pc, bool uncond, void* &bpHistory) override;
 };
 
 } // namespace branch_prediction
