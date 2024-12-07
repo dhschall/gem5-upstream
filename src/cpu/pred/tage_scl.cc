@@ -24,9 +24,6 @@ TAGE_SCL::update(ThreadID tid, Addr pc, bool taken, void * &bp_history,
 {
     TageSclBranchInfo *bi = static_cast<TageSclBranchInfo*>(bp_history);
 
-    if(bi->id == 55){
-        std::cout << "bi->id == 0" << std::endl;
-    }
     DPRINTF(Tage, "TAGE id:%d update: %lx squashed:%s bp_history:%p\n", bi ? bi->id : -1, pc, squashed, bp_history);
 
     assert(bp_history);
@@ -78,10 +75,14 @@ TAGE_SCL::branchPlaceholder(ThreadID tid, Addr pc, bool uncond, void *&b)
     TageSclBranchInfo *bi = new TageSclBranchInfo();
     DPRINTF(Tage, "branchPlaceholder, TAGE id: %d predict: %lx bp_history:%p\n", id, pc, b);
     bi->id = id;
+    if(id == 128){
+        std::cout << "128 bpholder" << std::endl;
+    }
     bi->pc = pc;
     bi->br_type.is_conditional = !uncond;
     bi->br_type.is_indirect = false;
     tage.get_prediction(id, pc);
+    tage.fakeCheckpoint(id);
     b = (void*)(bi);
 }
 

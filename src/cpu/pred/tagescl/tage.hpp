@@ -78,7 +78,7 @@ class Long_History_Register {
 
   // Rewinds num_rewind_bits branches out of the history.
   void rewind(int num_rewind_bits) {
-    assert(takenOnlyHist || (num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_));
+    assert((takenOnlyHist && num_rewind_bits == 0) || (num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_));
     num_speculative_bits_ -= num_rewind_bits;
     head_ += num_rewind_bits;
   }
@@ -261,6 +261,16 @@ class Tage_Histories {
     path_history_ = 0;
     intialize_folded_history();
   }
+  //branchPlaceholder doesn't change the histories
+  void fakeCheckpoint(Tage_Prediction_Info<TAGE_CONFIG>* prediction_info) {
+    prediction_info->num_global_history_bits = 0;
+    prediction_info->path_history_checkpoint = path_history_;
+    prediction_info->global_history_head_checkpoint_ =
+        history_register_.head_idx();
+
+    //check out whether it is necessary to chekcpoint path_history_commit
+    //prediction_info->path_history_commit_checkpoint = path_history_;
+  }
 
   void push_into_history(uint64_t br_pc, uint64_t br_target,
                          Branch_Type br_type, bool branch_dir,
@@ -318,6 +328,7 @@ class Tage_Histories {
         path_history_ & ((1 << TAGE_CONFIG::PATH_HISTORY_WIDTH) - 1);
     prediction_info->path_history_commit_checkpoint = path_history_;
   }
+
 
   void intialize_folded_history(void);
 
@@ -422,6 +433,11 @@ class Tage {
           std::abs(2 * longest_match_counter + 1) == 1;
     }
   }
+  //branchPlaceholder doesn't change the histories
+  void fakeCheckpoint(Tage_Prediction_Info<TAGE_CONFIG>* prediction_info) {
+      tage_histories_.fakeCheckpoint(prediction_info);
+  }
+  
 
   void update_speculative_state(
       uint64_t br_pc, uint64_t br_target, Branch_Type br_type,
