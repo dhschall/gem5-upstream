@@ -78,14 +78,14 @@ class Long_History_Register {
 
   // Rewinds num_rewind_bits branches out of the history.
   void rewind(int num_rewind_bits) {
-    assert((takenOnlyHist && num_rewind_bits == 0) || (num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_));
+    assert(num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_);
     num_speculative_bits_ -= num_rewind_bits;
     head_ += num_rewind_bits;
   }
 
   // Retire speculative bits.
   void retire(int num_retire_bits) {
-    assert(takenOnlyHist || (num_retire_bits > 0 && num_retire_bits <= num_speculative_bits_));
+    assert((takenOnlyHist && num_retire_bits == 0) || (num_retire_bits > 0 && num_retire_bits <= num_speculative_bits_));
     num_speculative_bits_ -= num_retire_bits;
     commit_head_ += num_retire_bits;
   }
@@ -291,7 +291,6 @@ class Tage_Histories {
     int num_bit_inserts_path = num_bit_inserts;
     int num_bit_inserts_hist = num_bit_inserts;
 
-    prediction_info->num_global_history_bits = num_bit_inserts_hist;
     prediction_info->path_history_checkpoint = path_history_;
     prediction_info->global_history_head_checkpoint_ =
         history_register_.head_idx();
@@ -304,6 +303,8 @@ class Tage_Histories {
             num_bit_inserts_hist = 0;
         }
     }
+
+    prediction_info->num_global_history_bits = num_bit_inserts_hist;
 
     //if num_bit_inserts_hist > 0, means takenOnlyHist is disabled
     //history_register is updated by push_bit(pc_dir_hash & 1);

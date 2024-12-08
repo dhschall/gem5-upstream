@@ -78,8 +78,8 @@ class Tage_SC_L : public Tage_SC_L_Base {
       : tage_(random_number_gen_, max_in_flight_branches, takenOnlyHist),
         statistical_corrector_(),
         loop_predictor_(random_number_gen_),
-        loop_predictor_beneficial_(-1) {}
-        //prediction_info_buffer_(max_in_flight_branches) {}
+        loop_predictor_beneficial_(-1), 
+        prediction_info_buffer_(max_in_flight_branches) {}
 
   // Gets a new branch_id for a new in-flight branch. The id remains valid
   // until
@@ -87,9 +87,7 @@ class Tage_SC_L : public Tage_SC_L_Base {
   // for each in-flight branch. The rest of the public functions in this class
   // need the id of a branch to work on.
   uint64_t get_new_branch_id() override {
-    //uint32_t branch_id = prediction_info_buffer_.allocate_back();
-    uint64_t branch_id = used_id;
-    used_id++;
+    uint32_t branch_id = prediction_info_buffer_.allocate_back();
     auto& prediction_info = prediction_info_buffer_[branch_id];
     Tage<typename CONFIG::TAGE>::build_empty_prediction(&prediction_info.tage);
     Loop_Predictor<typename CONFIG::LOOP>::build_empty_prediction(
@@ -160,10 +158,7 @@ class Tage_SC_L : public Tage_SC_L_Base {
   // Used for remembering necessary information gathered during prediction
   // that
   // are needed for update.
-  //Circular_Buffer<Tage_SC_L_Prediction_Info<CONFIG>> prediction_info_buffer_;
-  //branch_id to prediciton_info
-  uint64_t used_id = 0;
-  std::map<uint64_t, Tage_SC_L_Prediction_Info<CONFIG>> prediction_info_buffer_;
+  Circular_Buffer<Tage_SC_L_Prediction_Info<CONFIG>> prediction_info_buffer_;
 };
 
 template <class CONFIG>
@@ -244,11 +239,10 @@ void Tage_SC_L<CONFIG>::flush_branch_and_repair_state(uint64_t branch_id,
       
   // First iterate over all flushed branches from youngest to oldest and call
   // local recovery functions.
-  //for (uint32_t id = prediction_info_buffer_.back_id();
-  //     id - branch_id < (uint32_t{1} << 31); --id) {
-    //auto& prediction_info = prediction_info_buffer_[id];
-  for (uint32_t id = used_id-1;
-       id >= branch_id ; --id) {
+  int tt = 0;
+  for (uint32_t id = prediction_info_buffer_.back_id();
+       id - branch_id < (uint32_t{1} << 31); --id) {
+	  ++tt;
     auto& prediction_info = prediction_info_buffer_[id];
     tage_.local_recover_speculative_state(prediction_info.tage);
     if (CONFIG::USE_LOOP_PREDICTOR) {
@@ -258,19 +252,11 @@ void Tage_SC_L<CONFIG>::flush_branch_and_repair_state(uint64_t branch_id,
       statistical_corrector_.local_recover_speculative_state(
           prediction_info.br_pc, prediction_info.sc);
     }
-    if(id != branch_id){
-        if(id == 128){
-            std::cout << "flush_branch_and_repair_state 128" << std::endl;
-        }
-        prediction_info_buffer_.erase(id);
-    }
   }
+  assert(tt == 1);
 
-  if(branch_id == 128){
-        std::cout << "flush_branch_and_repair 128" << std::endl;
-  }
 
-  //prediction_info_buffer_.deallocate_after(branch_id);
+  prediction_info_buffer_.deallocate_after(branch_id);
 
   // Now call global recovery functions.
   auto& prediction_info = prediction_info_buffer_[branch_id];
@@ -296,7 +282,6 @@ void Tage_SC_L<CONFIG>::flush_branch_and_repair_state(uint64_t branch_id,
         br_pc, resolve_dir, br_target, br_type, &prediction_info.sc);
   }
 
-  //prediction_info_buffer_.erase(branch_id);
 }
 
 template <class CONFIG>
@@ -307,11 +292,10 @@ void Tage_SC_L<CONFIG>::flush_branch(uint64_t branch_id) {
   //}
   // First iterate over all flushed branches from youngest to oldest and
   // call local recovery functions.
-  //for (uint32_t id = prediction_info_buffer_.back_id();
-  //     id - branch_id < (uint32_t{1} << 31); --id) {
-    //auto& prediction_info = prediction_info_buffer_[id];
-  for (uint32_t id = used_id-1;
-       id >= branch_id ; --id) {
+    int tt = 0;
+  for (uint32_t id = prediction_info_buffer_.back_id();
+       id - branch_id < (uint32_t{1} << 31); --id) {
+	  tt++;
     auto& prediction_info = prediction_info_buffer_[id];
     tage_.local_recover_speculative_state(prediction_info.tage);
     if (CONFIG::USE_LOOP_PREDICTOR) {
@@ -321,16 +305,11 @@ void Tage_SC_L<CONFIG>::flush_branch(uint64_t branch_id) {
       statistical_corrector_.local_recover_speculative_state(
           prediction_info.br_pc, prediction_info.sc);
     }
-    if(id != branch_id){
-        if(id == 128){
-            std::cout << "update_speculative_state 128" << std::endl;
-        }
-        prediction_info_buffer_.erase(id);
-    }
   }
+    assert(tt == 1);
 
   auto& prediction_info = prediction_info_buffer_[branch_id];
-  //prediction_info_buffer_.deallocate_and_after(branch_id);
+  prediction_info_buffer_.deallocate_and_after(branch_id);
 
   // Now call global recovery functions.
   tage_.global_recover_speculative_state(prediction_info.tage);
@@ -343,10 +322,6 @@ void Tage_SC_L<CONFIG>::flush_branch(uint64_t branch_id) {
 
   random_number_gen_.seed_ = prediction_info.rng_seed;
 
-        if(branch_id == 128){
-            std::cout << "flush branch 128" << std::endl;
-        }
-  prediction_info_buffer_.erase(branch_id);
 }
 
 template <class CONFIG>
@@ -368,20 +343,13 @@ void Tage_SC_L<CONFIG>::commit_state_at_retire(uint64_t branch_id,
       statistical_corrector_.commit_state_at_retire();
     }
   }
-  //prediction_info_buffer_.deallocate_front(branch_id);
-  if(branch_id == 128){
-      std::cout << "commit_state_at_retire 128" << std::endl;
-  }
-  prediction_info_buffer_.erase(branch_id);
+  prediction_info_buffer_.deallocate_front(branch_id);
 }
 
 template <class CONFIG>
 void Tage_SC_L<CONFIG>::retire_non_branch_ip(uint64_t branch_id) {
   // std::cerr << "retire_non_branch_ip(" << branch_id << ")\n";
-  if(branch_id == 128){
-      std::cout << "retire_non_branch_ip 128" << std::endl;
-  }
-  prediction_info_buffer_.erase(branch_id);
+  prediction_info_buffer_.deallocate_front(branch_id);
 }
 
 template <class CONFIG>
@@ -393,9 +361,6 @@ void Tage_SC_L<CONFIG>::update_speculative_state(uint64_t branch_id,
   auto& prediction_info = prediction_info_buffer_[branch_id];
   prediction_info.rng_seed = random_number_gen_.seed_;
   prediction_info.updated_history = true;
-  if(branch_id == 128){
-      std::cout << "update_speculative_state 128" << std::endl;
-  }
   tage_.update_speculative_state(br_pc, br_target, br_type, branch_dir,
                                  &prediction_info.tage);
   if (CONFIG::USE_LOOP_PREDICTOR) {
