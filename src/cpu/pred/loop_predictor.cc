@@ -297,6 +297,12 @@ LoopPredictor::loopPredict(ThreadID tid, Addr branch_pc, bool cond_branch,
     // loop prediction
     bi->loopPred = getLoop(branch_pc, bi, useSpeculation, instShiftAmt);
 
+    if(bi->loopPredValid){
+        std::cout << "lpv" << std::endl;
+    }
+    if(loopUseCounter >= 0){
+        std::cout << "luc >= 0" << std::endl;
+    }
     if ((loopUseCounter >= 0) && bi->loopPredValid) {
         pred_taken = bi->loopPred;
         bi->loopPredUsed = true;

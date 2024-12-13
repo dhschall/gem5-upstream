@@ -600,11 +600,11 @@ void
 TAGEBase::updatePathAndGlobalHistory(ThreadID tid, int brType,
                           bool taken, Addr branch_pc, Addr target, BranchInfo* bi)
 {
-    ThreadHistory& tHist = threadHistory[tid];
+    //ThreadHistory& tHist = threadHistory[tid];
     // Update path history
-    bool pathbit = ((branch_pc >> instShiftAmt) & 1);
-    tHist.pathHist = (tHist.pathHist << 1) + pathbit;
-    tHist.pathHist = (tHist.pathHist & ((1ULL << pathHistBits) - 1));
+    //bool pathbit = ((branch_pc >> instShiftAmt) & 1);
+    //tHist.pathHist = (tHist.pathHist << 1) + pathbit;
+    //tHist.pathHist = (tHist.pathHist & ((1ULL << pathHistBits) - 1));
 
     if (takenOnlyHistory) {
         // Taken-only history is implemented after the paper:

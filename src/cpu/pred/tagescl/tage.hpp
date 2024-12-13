@@ -58,6 +58,8 @@ class Long_History_Register {
     history_bits_[head_ & buffer_access_mask_] = bit;
 
     num_speculative_bits_ += 1;
+    std::cout << "push_bit head_: " << head_ << std::endl;
+    std::cout << "push_bit num_speculative_bits_: " << num_speculative_bits_ << std::endl;
     assert(num_speculative_bits_ <= max_num_speculative_bits_);
   }
 
@@ -80,14 +82,18 @@ class Long_History_Register {
   void rewind(int num_rewind_bits) {
     assert(num_rewind_bits > 0 && num_rewind_bits <= num_speculative_bits_);
     num_speculative_bits_ -= num_rewind_bits;
+    std::cout << "rewind num_speculative_bits_ = " << num_speculative_bits_ << std::endl;
     head_ += num_rewind_bits;
+    std::cout << "rewind head_ = " << head_ << std::endl;
   }
 
   // Retire speculative bits.
   void retire(int num_retire_bits) {
     assert((takenOnlyHist && num_retire_bits == 0) || (num_retire_bits > 0 && num_retire_bits <= num_speculative_bits_));
     num_speculative_bits_ -= num_retire_bits;
+    std::cout << "retire num_speculative_bits_ = " << num_speculative_bits_ << std::endl;
     commit_head_ += num_retire_bits;
+    std::cout << "retire commit_head = " << commit_head_ << std::endl;
   }
 
   // Random access interface, i=0 is the most recent branch (head).
@@ -261,16 +267,6 @@ class Tage_Histories {
     path_history_ = 0;
     intialize_folded_history();
   }
-  //branchPlaceholder doesn't change the histories
-  void fakeCheckpoint(Tage_Prediction_Info<TAGE_CONFIG>* prediction_info) {
-    prediction_info->num_global_history_bits = 0;
-    prediction_info->path_history_checkpoint = path_history_;
-    prediction_info->global_history_head_checkpoint_ =
-        history_register_.head_idx();
-
-    //check out whether it is necessary to chekcpoint path_history_commit
-    //prediction_info->path_history_commit_checkpoint = path_history_;
-  }
 
   void push_into_history(uint64_t br_pc, uint64_t br_target,
                          Branch_Type br_type, bool branch_dir,
@@ -434,11 +430,6 @@ class Tage {
           std::abs(2 * longest_match_counter + 1) == 1;
     }
   }
-  //branchPlaceholder doesn't change the histories
-  void fakeCheckpoint(Tage_Prediction_Info<TAGE_CONFIG>* prediction_info) {
-      tage_histories_.fakeCheckpoint(prediction_info);
-  }
-  
 
   void update_speculative_state(
       uint64_t br_pc, uint64_t br_target, Branch_Type br_type,

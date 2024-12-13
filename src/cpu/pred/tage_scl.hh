@@ -8,6 +8,9 @@
 #include "cpu/pred/tage_base.hh"
 #include "params/TAGE_SCL.hh"
 #include "cpu/pred/tagescl/tagescl.hpp"
+#include "cpu/pred/tagescl/statistical_corrector.hpp"
+#include "cpu/pred/tagescl/tage.hpp"
+#include "cpu/pred/tagescl/utils.hpp"
 
 namespace gem5
 {
@@ -23,15 +26,6 @@ class TAGE_SCL: public BPredUnit
   protected:
     virtual bool predict(ThreadID tid, Addr branch_pc, bool cond_branch,
                          void* &b);
-
-    struct TageSclBranchInfo
-    {
-        uint32_t id;
-        Addr pc;
-        tagescl::Branch_Type br_type;
-        TageSclBranchInfo()
-        {}
-    };
 
   public:
 
