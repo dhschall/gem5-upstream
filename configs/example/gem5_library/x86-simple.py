@@ -115,6 +115,18 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--takenOnlyHist",
+        action="store_true",
+        help="enable the takenOnly History",
+    )
+
+    parser.add_argument(
+        "--speculativeUpdate",
+        action="store_true",
+        help="enable speculative update",
+    )
+
+    parser.add_argument(
         "--pfc",
         action="store_true",
         help="Enhance FDP with Post Fetch Correction. Only can it work when fdp is enabled.",
@@ -193,11 +205,11 @@ class BPLTage(LTAGE):
     instShiftAmt = 0
     indirectBranchPred = IndirectPred()
     BTB = BTB()
-    tage = TAGE_64KB()
+    tage = TAGE_64KB(maxHist=2000)
     requiresBTBHit = True
 
 class BPTage_sc_l(TAGE_SCL):
-    instShiftAmt = 0
+    instShiftAmt = 2
     BTB = BTB()
     indirectBranchPred = IndirectPred()
     requiresBTBHit = True
@@ -283,9 +295,9 @@ memory = DualChannelDDR4_2400(size="2GB")
 
 # Here we setup the processor. For booting we take the KVM core and
 # for the evaluation we can take ATOMIC, TIMING or O3
-eval_core = CPUTypes.ATOMIC
+#eval_core = CPUTypes.ATOMIC
 #eval_core = CPUTypes.TIMING
-#eval_core = CPUTypes.O3
+eval_core = CPUTypes.O3
 
 processor = SimpleProcessor(
     cpu_type=CPUTypes.KVM if args.mode=="setup" else eval_core,
@@ -295,25 +307,34 @@ processor = SimpleProcessor(
 
 if args.mode != "setup":
     cpu1 = processor.cores[1].core
-    #cpu1.fetchBufferSize = 16
-    #cpu1.fetchTargetWidth = 32
+    cpu1.fetchBufferSize = 16
+    cpu1.fetchTargetWidth = 32
 
-    #cpu1.branchPred = BPLTage(
-    #    takenOnlyHistory = True,
-    #    requiresBTBHit = True,
-    #)
-    cpu1.branchPred = BPTage_sc_l(
-        takenOnlyHistory = True,
+    cpu1.branchPred = BPLTage(
         requiresBTBHit = True,
     )
-    #if args.disable_fdp:
-    #    cpu1.decoupledFrontEnd = False
-    #    #remember to change, this is used just for the latest experiments
-    #    #cpu1.branchPred.tage.speculativeHistUpdate = True
-    #else:
-    #    cpu1.decoupledFrontEnd = True
-    #    if args.pfc:
-    #        cpu1.pfc = True
+    #cpu1.branchPred = BPTage_sc_l(
+    #    requiresBTBHit = True,
+    #)
+
+    if args.takenOnlyHist:
+        cpu1.branchPred.takenOnlyHistory = True
+    else:
+        cpu1.branchPred.takenOnlyHistory = False
+
+    if args.disable_fdp:
+        cpu1.decoupledFrontEnd = False
+    else:
+        cpu1.decoupledFrontEnd = True
+        if args.pfc:
+            cpu1.pfc = True
+  
+    if args.speculativeUpdate:
+        #invalid to discussion's tage_sc_l since it supoprts speculativeHistUpdate by default
+        cpu1.branchPred.tage.speculativeHistUpdate = True
+    else:
+        cpu1.branchPred.tage.speculativeHistUpdate = False
+          
 
     if args.onlyTaken_set:
         cpu1.branchPred.onlyTaken_set = True
