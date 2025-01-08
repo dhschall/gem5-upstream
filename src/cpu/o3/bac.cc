@@ -849,7 +849,7 @@ BAC::updatePreDecode(ThreadID tid, const InstSeqNum seqNum,
     //
     // Note we might end up here multiple times until the full instruction
     // is completed.
-    if (inst->isMicroop() && !inst->isLastMicroop() && (hist == nullptr)) {
+    if (inst->isMicroop() && !inst->isLastMicroop()) {
 
         DPRINTF(Branch, "No history for complex instruction found. \n");
         stats.multiBranchInst++;
@@ -865,7 +865,11 @@ BAC::updatePreDecode(ThreadID tid, const InstSeqNum seqNum,
         ftq->lock(tid);
 
         // Finally we can make a fresh prediction.
-        bpu->predict(inst, ft->ftNum(), pc, tid, hist);
+        if(hist == nullptr){
+            bpu->predict(inst, ft->ftNum(), pc, tid, hist);
+        }else{
+            set(pc, *hist->target); 
+        }
         target_set = true;
     }
 
