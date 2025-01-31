@@ -132,7 +132,7 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
 void
 BPredUnit::recordPFCBranch(const InstSeqNum &seqNum)
 {
-    ++stats.postFetchCorrection;
+    //++stats.postFetchCorrection;
     pfc_record.insert(seqNum); 
 }
 
@@ -410,6 +410,11 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
     stats.committed[tid][hist->type]++;
     if (hist->mispredict) {
         stats.mispredicted[tid][hist->type]++;
+        ppMisses->notify(1);
+    }
+
+    if((hist->type == BranchType::DirectCond) && (hist->condPred != hist->actuallyTaken)){
+        stats.condIncorrect++;
     }
 
     DPRINTF(Branch, "Commit branch: sn:%llu, PC:%#x %s, "
@@ -452,6 +457,9 @@ BPredUnit::commitBranch(ThreadID tid, PredictorHistory* &hist)
     //If this branch caused a post fetch correction, check its correctness here.
     //Only when pfc is enabled does it work. Otherwise pfc_record is always empty.
     bool is_pfc = checkPFCRecord(hist->seqNum);
+    if(is_pfc){
+        ++stats.postFetchCorrection;
+    }
 
     // Update the BTB with commited branches.
     // Install all taken
@@ -560,8 +568,8 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
 
     History &pred_hist = predHist[tid];
 
-    ++stats.condIncorrect;
-    ppMisses->notify(1);
+    //++stats.condIncorrect;
+    //ppMisses->notify(1);
 
 
     DPRINTF(Branch, "[tid:%i] Squash from %s start from sequence number %i, "

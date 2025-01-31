@@ -1276,7 +1276,7 @@ Fetch::fetch(bool &status_change)
                     tid, staticInst, curMacroop, this_pc, *next_pc, true);
 
 	    //Set direction hint for instuction when using pfc.
-	    if(pfc){
+	    if(decoupledFrontEnd && pfc){
 	      bool direction_hint = curFT->getDireHint(this_pc.instAddr()); 
 	      instruction->setHintTaken(direction_hint);
 	    }

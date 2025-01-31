@@ -954,6 +954,10 @@ BAC::updatePC(const DynInstPtr &inst,
             // here.
             predict_taken = bpu->predict(inst->staticInst, inst->seqNum,
                                          fetch_pc, tid);
+            if(pfc){
+                bool direction_hint = bpu->predictHint(fetch_pc.instAddr(), tid);
+                inst->setHintTaken(direction_hint);
+            }
         }
 
         DPRINTF(BAC, "[tid:%i] [sn:%llu] Branch at PC %#x "
